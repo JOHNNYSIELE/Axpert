@@ -175,6 +175,40 @@ export interface SystemInfo {
   }[];
 }
 
+export interface AuthUser {
+  id: string;
+  email: string;
+  username: string;
+  fullName: string;
+  role: 'admin' | 'operator' | 'analyst';
+  createdAt: string;
+  lastLogin?: string;
+}
+
+export interface AuthSession {
+  token: string;
+  userId: string;
+  createdAt: string;
+  expiresAt: string;
+  user?: AuthUser;
+}
+
+export interface AuthAuditLog {
+  id: string;
+  userId?: string;
+  email?: string;
+  eventType: 'REGISTER' | 'LOGIN_SUCCESS' | 'LOGIN_FAILURE' | 'LOGOUT' | 'PASSWORD_CHANGE' | 'DB_INIT';
+  description: string;
+  timestamp: string;
+  ipAddress: string;
+}
+
+export interface SqliteTableInfo {
+  name: string;
+  rowCount: number;
+  columns: string[];
+}
+
 export interface IElectronAPI {
   selectFiles: () => Promise<Array<{ name: string; path: string; size: number; type: string; file?: File }>>;
   startConversion: (payload: ConversionJobPayload) => Promise<{ jobId: string }>;

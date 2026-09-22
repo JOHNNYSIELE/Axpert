@@ -15,6 +15,8 @@ import { QuickPdfOcrTool } from './components/QuickPdfOcrTool';
 import { AudioExtractor } from './components/AudioExtractor';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { ThemeSelectorModal } from './components/ThemeSelector';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthLandingWindow } from './components/AuthLandingWindow';
 
 function MainDesktopWindow() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('converter');
@@ -79,10 +81,43 @@ function MainDesktopWindow() {
   );
 }
 
+function AppContent() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="w-screen h-screen bg-[#0b0f17] flex flex-col items-center justify-center text-slate-100 font-mono space-y-4">
+        <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center text-cyan-400 font-bold text-lg animate-pulse">
+          AX
+        </div>
+        <div className="text-center space-y-1">
+          <div className="text-sm font-semibold tracking-wide text-slate-200">
+            Initializing AXpert Offline SQLite Workstation...
+          </div>
+          <div className="text-xs text-slate-500">
+            Mounting local WebAssembly database & validating session...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is not authenticated, show the Auth Landing Window
+  if (!user) {
+    return <AuthLandingWindow />;
+  }
+
+  // Once authenticated, render the full workstation application
+  return <MainDesktopWindow />;
+}
+
 export default function App() {
   return (
     <ThemeProvider>
-      <MainDesktopWindow />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </ThemeProvider>
   );
 }
+

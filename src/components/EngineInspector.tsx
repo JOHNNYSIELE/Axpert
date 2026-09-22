@@ -22,13 +22,22 @@ import {
   HardDrive,
   Sliders,
   Sparkles,
-  Gauge
+  Gauge,
+  Database,
+  Code,
+  ShieldCheck,
+  RefreshCw,
+  KeyRound,
+  UserCheck
 } from 'lucide-react';
 import { EngineTelemetry, EngineLogEntry, EngineBenchmarkResult } from '../types';
 import { engineTelemetry } from '../services/engineTelemetry';
 import { formatFileSize } from '../services/fileService';
+import { useAuth } from '../context/AuthContext';
+import { sqliteAuth } from '../services/sqliteAuthService';
 
 export const EngineInspector: React.FC = () => {
+  const { tableInfo, auditLogs, exportDatabaseFile, resetDatabase, refreshData } = useAuth();
   const [telemetry, setTelemetry] = useState<EngineTelemetry>(engineTelemetry.getTelemetry());
   const [logs, setLogs] = useState<EngineLogEntry[]>(engineTelemetry.getLogs());
   const [benchmarks, setBenchmarks] = useState<EngineBenchmarkResult[] | null>(null);
@@ -36,6 +45,27 @@ export const EngineInspector: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+
+  // SQLite Console State
+  const [sqlQuery, setSqlQuery] = useState<string>(
+    'SELECT id, email, username, role, created_at, last_login FROM users;'
+  );
+  const [queryResult, setQueryResult] = useState<{
+    columns?: string[];
+    values?: (string | number | null)[][];
+    error?: string;
+  } | null>(null);
+
+  const handleExecuteSql = () => {
+    if (!sqlQuery.trim()) return;
+    const res = sqliteAuth.executeRawSql(sqlQuery);
+    if ('error' in res) {
+      setQueryResult({ error: res.error });
+    } else {
+      setQueryResult({ columns: res.columns, values: res.values });
+      refreshData();
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = engineTelemetry.subscribe(() => {
@@ -274,7 +304,171 @@ export const EngineInspector: React.FC = () => {
         </div>
       </section>
 
-      {/* SECTION 3: SUBSYSTEM DIAGNOSTIC BENCHMARKS */}
+      {/* SECTION 3: OFFLINE SQLITE DATABASE & AUTHENTICATION SUBSYSTEM */}
+      <section aria-label="Offline SQLite Engine" className="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Database className="w-4 h-4 text-cyan-400" />
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                Offline SQLite Database &amp; Auth Subsystem (WASM + IndexedDB)
+              </h3>
+              <p className="text-[11px] text-slate-400 font-mono">
+                Embedded relational database running 100% offline with zero external cloud dependencies
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={refreshData}
+              className="px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <RefreshCw className="w-3 h-3 text-cyan-400" />
+              <span>Refresh</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={exportDatabaseFile}
+              className="px-2.5 py-1 text-xs rounded-lg bg-blue-950/80 hover:bg-blue-900/90 text-blue-300 border border-blue-800/60 font-mono flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+              title="Download raw .sqlite database binary file"
+            >
+              <Download className="w-3 h-3 text-cyan-400" />
+              <span>Download .sqlite File</span>
+            </button>
+          </div>
+        </div>
+
+        {/* SQLite Tables Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {tableInfo.map((tbl) => (
+            <div
+              key={tbl.name}
+              className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 space-y-1.5 font-mono"
+            >
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-200 flex items-center gap-1.5">
+                  <Database className="w-3 h-3 text-cyan-400" />
+                  {tbl.name}
+                </span>
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-800/60">
+                  {tbl.rowCount} {tbl.rowCount === 1 ? 'row' : 'rows'}
+                </span>
+              </div>
+              <div className="text-[10px] text-slate-400 truncate">
+                Columns: {tbl.columns.length}
+              </div>
+              <div className="text-[9px] text-slate-500 truncate" title={tbl.columns.join(', ')}>
+                {tbl.columns.slice(0, 3).join(', ')}
+                {tbl.columns.length > 3 && ` +${tbl.columns.length - 3} more`}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Live Interactive SQL Query Console */}
+        <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3 font-mono text-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <span className="font-semibold text-slate-200 flex items-center gap-1.5">
+              <Code className="w-3.5 h-3.5 text-cyan-400" />
+              Live SQLite Query Console
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setSqlQuery('SELECT id, email, username, role, created_at, last_login FROM users;')}
+                className="px-2 py-0.5 rounded text-[10px] bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 cursor-pointer"
+              >
+                SELECT users
+              </button>
+              <button
+                type="button"
+                onClick={() => setSqlQuery('SELECT id, email, event_type, description, timestamp FROM auth_audit_logs ORDER BY timestamp DESC LIMIT 10;')}
+                className="px-2 py-0.5 rounded text-[10px] bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 cursor-pointer"
+              >
+                SELECT audit logs
+              </button>
+              <button
+                type="button"
+                onClick={() => setSqlQuery('SELECT token, user_id, created_at, expires_at FROM sessions;')}
+                className="px-2 py-0.5 rounded text-[10px] bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 cursor-pointer"
+              >
+                SELECT sessions
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={sqlQuery}
+              onChange={(e) => setSqlQuery(e.target.value)}
+              placeholder="e.g. SELECT * FROM users;"
+              className="flex-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700/80 text-cyan-300 text-xs font-mono focus:outline-none focus:border-cyan-500"
+            />
+            <button
+              type="button"
+              onClick={handleExecuteSql}
+              className="px-4 py-2 rounded-lg theme-btn-primary font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+            >
+              <Play className="w-3 h-3 fill-current" />
+              <span>EXECUTE SQL</span>
+            </button>
+          </div>
+
+          {/* SQL Query Result Output Table */}
+          {queryResult && (
+            <div className="space-y-1.5 animate-in fade-in">
+              {queryResult.error ? (
+                <div className="p-3 rounded-lg bg-rose-950/50 border border-rose-900 text-rose-300 text-xs">
+                  SQLite Error: {queryResult.error}
+                </div>
+              ) : (
+                <div className="max-h-52 overflow-auto rounded-lg border border-slate-800 bg-slate-900/60">
+                  <table className="w-full text-left text-[11px] font-mono">
+                    <thead className="bg-slate-900 border-b border-slate-800 text-slate-400 text-[10px] uppercase sticky top-0">
+                      <tr>
+                        {queryResult.columns?.map((col) => (
+                          <th key={col} className="py-2 px-3 font-semibold text-slate-300">
+                            {col}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                      {queryResult.values?.length === 0 ? (
+                        <tr>
+                          <td colSpan={queryResult.columns?.length || 1} className="py-3 px-3 text-center text-slate-500">
+                            Empty result set (0 rows returned)
+                          </td>
+                        </tr>
+                      ) : (
+                        queryResult.values?.map((row, idx) => (
+                          <tr key={idx} className="hover:bg-slate-800/40">
+                            {row.map((val, cellIdx) => (
+                              <td key={cellIdx} className="py-2 px-3 truncate max-w-xs">
+                                {val === null ? (
+                                  <span className="text-slate-600 italic">NULL</span>
+                                ) : (
+                                  String(val)
+                                )}
+                              </td>
+                            ))}
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* SECTION 4: SUBSYSTEM DIAGNOSTIC BENCHMARKS */}
       {benchmarks && (
         <section aria-label="Diagnostic Benchmarks" className="space-y-3">
           <div className="flex items-center justify-between">

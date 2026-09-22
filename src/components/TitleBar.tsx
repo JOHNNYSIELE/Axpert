@@ -1,6 +1,7 @@
 import React from 'react';
-import { Minus, Square, X, Zap, Music, Sun, Moon, Palette } from 'lucide-react';
+import { Minus, Square, X, Zap, Music, Sun, Moon, Palette, LogOut, User } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 
 interface TitleBarProps {
   platform?: string;
@@ -16,6 +17,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
   onOpenThemeModal
 }) => {
   const { mode, toggleMode, currentPreset } = useTheme();
+  const { user, logout } = useAuth();
 
   return (
     <header
@@ -105,10 +107,35 @@ export const TitleBar: React.FC<TitleBarProps> = ({
         </div>
       </div>
 
-      {/* Center status info (hidden on narrow screens) */}
-      <div className="hidden xl:flex items-center gap-2 text-[11px] text-slate-400">
-        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-        <span>AXpert Engine: Ready</span>
+      {/* Center status info & User Profile */}
+      <div className="flex items-center gap-3">
+        {user ? (
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-900 border border-slate-700/80 text-[11px] font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+              <User className="w-3 h-3 text-cyan-400" />
+              <span className="text-slate-200 font-semibold">{user.username}</span>
+              <span className="text-[10px] text-slate-400 px-1 rounded bg-slate-800 border border-slate-700/60 uppercase">
+                {user.role}
+              </span>
+            </div>
+            <button
+              id="titlebar-btn-logout"
+              type="button"
+              onClick={logout}
+              className="flex items-center gap-1 px-2 py-1 rounded bg-slate-900/90 hover:bg-rose-950/80 text-slate-300 hover:text-rose-300 border border-slate-700/80 hover:border-rose-800/80 text-[11px] font-mono transition-colors cursor-pointer"
+              title="Sign Out of SQLite Session"
+            >
+              <LogOut className="w-3 h-3" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
+          </div>
+        ) : (
+          <div className="hidden xl:flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>SQLite: Ready</span>
+          </div>
+        )}
       </div>
 
       {/* Window Controls (Simulated native desktop controls) */}

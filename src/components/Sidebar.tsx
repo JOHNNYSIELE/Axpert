@@ -10,9 +10,13 @@ import {
   Sun,
   Moon,
   Palette,
-  Check
+  Check,
+  User,
+  LogOut,
+  Database
 } from 'lucide-react';
 import { useTheme, THEME_PRESETS, ThemePreset } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 
 export type ActiveTab = 'converter' | 'ocr' | 'audio' | 'metadata' | 'architecture';
 
@@ -32,6 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenThemeModal
 }) => {
   const { mode, toggleMode, preset, setPreset, currentPreset } = useTheme();
+  const { user, logout } = useAuth();
 
   return (
     <aside
@@ -313,6 +318,53 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Authenticated User & SQLite Session Box */}
+        {user && (
+          <div
+            id="sidebar-user-card"
+            className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/90 space-y-2 mb-2"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-xs"
+                  style={{
+                    background: `linear-gradient(135deg, ${currentPreset.secondary}, ${currentPreset.primary})`
+                  }}
+                >
+                  {user.username.slice(0, 2).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-slate-200 truncate">
+                    {user.fullName || user.username}
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                    <span className="capitalize">{user.role}</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                id="sidebar-btn-signout"
+                type="button"
+                onClick={logout}
+                title="Sign Out of SQLite Session"
+                className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-950/80 text-slate-400 hover:text-rose-300 border border-slate-800 hover:border-rose-800/80 transition-colors cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 pt-1 border-t border-slate-800/60">
+              <span className="flex items-center gap-1 text-cyan-400">
+                <Database className="w-2.5 h-2.5" />
+                SQLite: Offline Local
+              </span>
+              <span className="text-slate-500">v3.45</span>
+            </div>
+          </div>
+        )}
 
         {/* System Telemetry Box */}
         <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/60 space-y-1.5">

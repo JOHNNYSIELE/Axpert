@@ -1,6 +1,6 @@
 {
   "name": "AXpert",
-  "description": "Desktop file converter, audio extractor, and instant PDF OCR suite with native IPC architecture.",
+  "description": "Desktop file converter, audio extractor, instant PDF OCR, and offline SQLite authentication suite with native IPC architecture.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
