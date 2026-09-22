@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Desktop File Converter</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <!-- Native Desktop Titlebar -->
+  <div class="titlebar">
+    <span>ELECTRON DESKTOP FILE CONVERTER</span>
+    <span>IPC ENGINE: READY</span>
+    <div>- ▢ ✕</div>
+  </div>
+
+  <div class="app-container">
+    <!-- Left Navigation Dock -->
+    <aside class="sidebar">
+      <div>
+        <div class="brand">
+          <div class="brand-icon">⚡</div>
+          <div>
+            <div style="font-weight: 600; font-size: 14px;">FileEngine</div>
+            <div style="font-size: 11px; color: var(--text-muted);">Desktop v1.0</div>
+          </div>
+        </div>
+
+        <button id="nav-btn-converter" class="nav-item active">📁 File Converter</button>
+        <button id="nav-btn-metadata" class="nav-item">🛡️ Metadata Tool</button>
+      </div>
+
+      <div style="font-size: 10px; color: var(--text-muted); font-family: monospace;">
+        IPC Bridge: Active<br>contextIsolation: true
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="workspace">
+      <!-- Section: File Converter -->
+      <div id="section-converter">
+        <h2 style="margin-bottom: 16px;">Batch File Converter</h2>
+
+        <!-- Dropzone -->
+        <div id="converter-dropzone" class="dropzone">
+          <div class="dropzone-title">DROP FILES HERE</div>
+          <div class="dropzone-desc">or click to browse files from your computer</div>
+        </div>
+
+        <!-- Queue -->
+        <div style="margin-bottom: 24px;">
+          <h3 style="font-size: 13px; text-transform: uppercase; margin-bottom: 10px; color: var(--text-muted);">
+            Queued Files (<span id="queue-counter">0</span>)
+          </h3>
+          <div id="queue-container">
+            <div style="font-size: 12px; color: var(--text-muted); font-family: monospace;">No files currently queued.</div>
+          </div>
+        </div>
+
+        <!-- Output Format -->
+        <div style="margin-bottom: 24px;">
+          <label style="font-size: 12px; font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 8px;">Output Format</label>
+          <select id="format-select" style="background: #070a0f; color: #fff; padding: 10px; border: 1px solid var(--border-subtle); border-radius: 8px; width: 240px;">
+            <option value="pdf">PDF — Portable Document Format</option>
+            <option value="docx">DOCX — Microsoft Word</option>
+            <option value="csv">CSV — Table Data</option>
+            <option value="txt">TXT — Plain Text</option>
+          </select>
+        </div>
+
+        <!-- Advanced Options -->
+        <div style="margin-bottom: 24px;">
+          <h3 style="font-size: 13px; text-transform: uppercase; margin-bottom: 10px; color: var(--text-muted);">Advanced Options</h3>
+          
+          <div class="toggle-row">
+            <div>
+              <div style="font-weight: 600; font-size: 12px;">OCR TEXT EXTRACTION</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Scan bitmap text into selectable font layers</div>
+            </div>
+            <input type="checkbox" id="toggle-ocr">
+          </div>
+
+          <div class="toggle-row">
+            <div>
+              <div style="font-weight: 600; font-size: 12px;">STRUCTURED TABLE EXTRACTION (CSV/XLSX)</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Extract tabular cell coordinates</div>
+            </div>
+            <input type="checkbox" id="toggle-table">
+          </div>
+
+          <div class="toggle-row">
+            <div>
+              <div style="font-weight: 600; font-size: 12px;">AUTOMATIC METADATA STRIPPER</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Strip author, revision and EXIF tags</div>
+            </div>
+            <input type="checkbox" id="toggle-metadata">
+          </div>
+        </div>
+
+        <div style="text-align: right;">
+          <button id="btn-execute" class="btn-primary">EXECUTE CONVERTER</button>
+        </div>
+      </div>
+
+      <!-- Section: Metadata Tool (Hidden initially) -->
+      <div id="section-metadata" style="display: none;">
+        <h2 style="margin-bottom: 16px;">Metadata Inspection & Stripping Tool</h2>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px;">
+          Isolated utility: inspects document tags and produces a clean copy without touching conversion settings.
+        </p>
+
+        <div id="metadata-dropzone" class="dropzone">
+          <div class="dropzone-title">SELECT FILE FOR METADATA INSPECTION</div>
+          <div class="dropzone-desc">Click or drop a single document/image</div>
+        </div>
+
+        <div id="metadata-details" style="display: none; margin-top: 20px;">
+          <h3 style="font-size: 13px; text-transform: uppercase; margin-bottom: 10px;">Detected Metadata</h3>
+          <table id="metadata-table">
+            <thead>
+              <tr>
+                <th>Property</th>
+                <th>Value</th>
+                <th>Category</th>
+                <th>Scope</th>
+              </tr>
+            </thead>
+            <tbody id="metadata-tbody"></tbody>
+          </table>
+
+          <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 12px; color: var(--text-muted);">Creates a separate sanitized document_clean copy.</span>
+            <button id="btn-strip-meta" class="btn-danger">REMOVE METADATA</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>
