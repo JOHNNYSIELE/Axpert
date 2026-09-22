@@ -10,11 +10,12 @@ import {
   CheckCircle,
   FileCheck2,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import { MetadataInspectionResult, MetadataStripResult } from '../types';
 import { ipc } from '../lib/ipcBridge';
-import { getMimeType } from '../services/fileService';
+import { getMimeType, formatFileSize } from '../services/fileService';
 
 interface MetadataToolProps {
   onFileLoadedChange?: (loaded: boolean) => void;
@@ -45,7 +46,7 @@ export const MetadataTool: React.FC<MetadataToolProps> = ({ onFileLoadedChange }
       setStatusMessage(null);
       const fileData = await ipc.selectMetadataFile();
       if (fileData) {
-        await processLoadedFile(fileData);
+        stageFileForInspection(fileData);
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to select file';
@@ -53,7 +54,7 @@ export const MetadataTool: React.FC<MetadataToolProps> = ({ onFileLoadedChange }
     }
   };
 
-  const processLoadedFile = async (fileData: {
+  const stageFileForInspection = (fileData: {
     name: string;
     size: number;
     type: string;
@@ -62,12 +63,20 @@ export const MetadataTool: React.FC<MetadataToolProps> = ({ onFileLoadedChange }
     file?: File;
   }) => {
     setSelectedFile(fileData);
+    setInspection(null);
     setStripResult(null);
-    setIsInspecting(true);
+    setErrorMessage(null);
+    setStatusMessage(null);
     if (onFileLoadedChange) onFileLoadedChange(true);
+  };
+
+  const handleExecuteInspection = async () => {
+    if (!selectedFile) return;
+    setIsInspecting(true);
+    setErrorMessage(null);
 
     try {
-      const result = await ipc.inspectMetadata(fileData);
+      const result = await ipc.inspectMetadata(selectedFile);
       setInspection(result);
       setStatusMessage(`Inspected ${result.properties.length} metadata properties.`);
     } catch (err: unknown) {
@@ -98,7 +107,7 @@ export const MetadataTool: React.FC<MetadataToolProps> = ({ onFileLoadedChange }
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const f = e.dataTransfer.files[0];
-      await processLoadedFile({
+      stageFileForInspection({
         name: f.name,
         size: f.size,
         type: f.type || getMimeType(f.name),
@@ -238,8 +247,67 @@ export const MetadataTool: React.FC<MetadataToolProps> = ({ onFileLoadedChange }
             Dedicated Single-Document Sanitizer
           </div>
         </div>
+      ) : !inspection ? (
+        /* Staged File Card with Inspect Action Button */
+        <div id="metadata-staged-panel" className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-cyan-950/80 border border-cyan-800 text-cyan-400 flex items-center justify-center shrink-0">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-slate-100 font-mono">
+                  {selectedFile.name}
+                </div>
+                <div className="text-xs text-slate-400 font-mono mt-0.5 flex items-center gap-2">
+                  <span>{formatFileSize(selectedFile.size)}</span>
+                  <span>•</span>
+                  <span>{selectedFile.type}</span>
+                  <span>•</span>
+                  <span className="text-cyan-400">Staged for Inspection</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleReset}
+              className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/60 transition-colors self-start sm:self-auto"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Choose Another File
+            </button>
+          </div>
+
+          <div className="pt-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-800/80">
+            <div className="text-xs text-slate-400 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span>Press the action button to scan container headers and detect embedded EXIF/XMP tags</span>
+            </div>
+
+            <button
+              id="btn-inspect-metadata"
+              type="button"
+              disabled={isInspecting}
+              onClick={handleExecuteInspection}
+              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg shadow-cyan-950/40 active:scale-[0.99] cursor-pointer"
+            >
+              {isInspecting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>ANALYZING METADATA...</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>INSPECT &amp; ANALYZE METADATA</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
       ) : (
-        /* Selected File Card */
+        /* Inspected File Header Card */
         <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-blue-950/60 border border-blue-800 text-blue-400 flex items-center justify-center">
@@ -258,8 +326,16 @@ export const MetadataTool: React.FC<MetadataToolProps> = ({ onFileLoadedChange }
 
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-1 rounded-full text-xs font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-800/60">
-              {inspection ? `${inspection.detectedCount} Properties Detected` : 'Inspecting...'}
+              {inspection.detectedCount} Properties Detected
             </span>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="text-xs text-slate-400 hover:text-slate-200 p-1.5 rounded-lg border border-slate-700 bg-slate-800/60 transition-colors"
+              title="Reset file"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       )}

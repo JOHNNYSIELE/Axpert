@@ -368,14 +368,19 @@ export const AudioExtractor: React.FC = () => {
             />
           </div>
 
-          {/* Action Button */}
-          <div className="flex justify-end pt-2">
+          {/* Action Button Section */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-800/80">
+            <div className="text-xs text-slate-400 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span>Configure target audio bitrate/format and press the action button to begin extraction</span>
+            </div>
+
             <button
               id="btn-start-audio-extraction"
               type="button"
               disabled={isExtracting}
               onClick={handleExtractAudio}
-              className="px-6 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-slate-950 text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all shadow-lg shadow-cyan-900/30 active:scale-[0.99]"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all shadow-lg shadow-cyan-950/40 active:scale-[0.99] cursor-pointer"
             >
               <Music className="w-4 h-4" />
               <span>{isExtracting ? 'EXTRACTING AUDIO STREAM...' : 'EXTRACT AUDIO FROM VIDEO'}</span>

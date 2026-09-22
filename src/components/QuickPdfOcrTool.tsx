@@ -40,6 +40,7 @@ export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = f
   const [copied, setCopied] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [ocrTargetFormat, setOcrTargetFormat] = useState<'both' | 'txt' | 'docx'>('both');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,10 +48,10 @@ export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = f
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      await executeOcrOnFile(file);
+      handleSelectPdf(file);
     }
   };
 
@@ -66,7 +67,7 @@ export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = f
     setIsDragging(false);
   };
 
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
@@ -74,15 +75,23 @@ export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = f
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
       if (file.name.toLowerCase().endsWith('.pdf') || file.type.includes('pdf')) {
-        await executeOcrOnFile(file);
+        handleSelectPdf(file);
       } else {
         setErrorMessage('Please upload a PDF document (.pdf).');
       }
     }
   };
 
-  const executeOcrOnFile = async (file: File) => {
+  const handleSelectPdf = (file: File) => {
     setSelectedFile(file);
+    setOcrResult(null);
+    setErrorMessage(null);
+    setProgress(0);
+    setProgressStage('');
+  };
+
+  const executeOcrOnFile = async () => {
+    if (!selectedFile) return;
     setErrorMessage(null);
     setIsProcessing(true);
     setProgress(10);
@@ -90,7 +99,7 @@ export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = f
     setOcrResult(null);
 
     try {
-      const result = await processPdfOcr(file, (p, stage) => {
+      const result = await processPdfOcr(selectedFile, (p, stage) => {
         setProgress(p);
         setProgressStage(stage);
       });
@@ -232,6 +241,99 @@ export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = f
           </div>
         </div>
       ) : null}
+
+      {/* STEP 1.5: STAGED PDF FILE & ACTION BUTTON (Before execution) */}
+      {selectedFile && !ocrResult && !isProcessing && (
+        <div id="pdf-ocr-staged-panel" className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-xl bg-blue-950/80 border border-blue-800/80 flex items-center justify-center text-blue-400 shrink-0">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-slate-100 font-mono flex items-center gap-2">
+                  <span>{selectedFile.name}</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800 font-mono font-medium">
+                    STAGED FOR OCR
+                  </span>
+                </div>
+                <div className="text-xs text-slate-400 font-mono mt-0.5 flex flex-wrap items-center gap-2.5">
+                  <span>{formatFileSize(selectedFile.size)}</span>
+                  <span>•</span>
+                  <span>PDF Document Container</span>
+                  <span>•</span>
+                  <span className="text-emerald-400">Ready to Extract</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleReset}
+              className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/60 transition-colors self-start sm:self-auto"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Choose Another File
+            </button>
+          </div>
+
+          {/* OCR Options */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
+            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+              <label className="text-[11px] text-slate-400 font-semibold uppercase block">
+                Target Output Format
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'both', label: 'TXT + DOCX' },
+                  { id: 'txt', label: '.TXT Only' },
+                  { id: 'docx', label: '.DOCX Only' }
+                ].map((fmt) => (
+                  <button
+                    key={fmt.id}
+                    type="button"
+                    onClick={() => setOcrTargetFormat(fmt.id as 'both' | 'txt' | 'docx')}
+                    className={`p-2 rounded-lg text-center font-bold text-[11px] transition-all border ${
+                      ocrTargetFormat === fmt.id
+                        ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-900/30'
+                        : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    {fmt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+              <label className="text-[11px] text-slate-400 font-semibold uppercase block">
+                OCR Pipeline Configuration
+              </label>
+              <div className="text-[11px] text-slate-300 font-sans leading-relaxed">
+                Reconstructs tabular layout, parses postscript streams, and optimizes text tokens for Microsoft Word and plain text editors.
+              </div>
+            </div>
+          </div>
+
+          {/* Primary Action Button */}
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="text-xs text-slate-400 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span>Press the action button to begin optical character recognition</span>
+            </div>
+
+            <button
+              id="btn-start-pdf-ocr"
+              type="button"
+              onClick={executeOcrOnFile}
+              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all shadow-lg shadow-blue-950/40 active:scale-[0.99] cursor-pointer"
+            >
+              <Zap className="w-4 h-4 fill-current" />
+              <span>START OCR EXTRACTION</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* PROCESSING STATE */}
       {isProcessing && (

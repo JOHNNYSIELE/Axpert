@@ -276,6 +276,38 @@ export const FileConverter: React.FC<FileConverterProps> = ({
     }
   };
 
+  // Convert single item explicitly
+  const handleConvertSingleItem = async (item: FileQueueItem) => {
+    if (item.status === 'PROCESSING') return;
+    try {
+      const jobId = `job-single-${item.id}-${Date.now()}`;
+      setActiveJobId(jobId);
+      setQueue((prev) =>
+        prev.map((q) =>
+          q.id === item.id
+            ? { ...q, status: 'PROCESSING', progress: 5, stage: 'Starting conversion...' }
+            : q
+        )
+      );
+
+      const payload: ConversionJobPayload = {
+        jobId,
+        fileId: item.id,
+        fileName: item.name,
+        filePath: item.path,
+        fileSize: item.size,
+        inputFormat: item.type,
+        outputFormat,
+        options: advancedOptions
+      };
+
+      await ipc.startConversion(payload);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error converting file';
+      showNotification(message, 'error');
+    }
+  };
+
   // Safe Cancel All
   const handleCancelAll = async () => {
     if (activeJobId) {
@@ -559,8 +591,22 @@ export const FileConverter: React.FC<FileConverterProps> = ({
                   </div>
 
                   {/* Actions & Status Pill */}
-                  <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex items-center gap-2.5 shrink-0">
                     {getStatusBadge(item.status)}
+
+                    {item.status === 'QUEUED' && (
+                      <button
+                        type="button"
+                        id={`btn-convert-item-${item.id}`}
+                        onClick={() => handleConvertSingleItem(item)}
+                        disabled={isProcessingAll}
+                        className="px-2.5 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/30 border border-cyan-500/35 text-cyan-300 text-[11px] font-mono font-semibold flex items-center gap-1 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                        title="Convert this file only"
+                      >
+                        <Play className="w-3 h-3 fill-current" />
+                        <span>Convert</span>
+                      </button>
+                    )}
 
                     {item.status === 'COMPLETED' && item.downloadUrl && (
                       <a
@@ -806,7 +852,12 @@ export const FileConverter: React.FC<FileConverterProps> = ({
           ) : (
             <>
               <Play className="w-4 h-4 fill-current" />
-              <span>EXECUTE CONVERTER</span>
+              <span>
+                EXECUTE CONVERTER{' '}
+                {queue.filter((i) => i.status === 'QUEUED' || i.status === 'FAILED').length > 0
+                  ? `(${queue.filter((i) => i.status === 'QUEUED' || i.status === 'FAILED').length} QUEUED)`
+                  : ''}
+              </span>
             </>
           )}
         </button>
