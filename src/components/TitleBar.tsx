@@ -1,5 +1,5 @@
 import React from 'react';
-import { Minus, Square, X, Zap, Music, Sun, Moon, Palette, LogOut, User } from 'lucide-react';
+import { Minus, Square, X, Zap, Music, Sun, Moon, Palette, LogOut, User, Eye, Lock, Download } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -8,16 +8,18 @@ interface TitleBarProps {
   onOpenQuickOcr?: () => void;
   onOpenAudioExtractor?: () => void;
   onOpenThemeModal?: () => void;
+  onOpenDesktopPackageModal?: () => void;
 }
 
 export const TitleBar: React.FC<TitleBarProps> = ({
   platform = 'win32',
   onOpenQuickOcr,
   onOpenAudioExtractor,
-  onOpenThemeModal
+  onOpenThemeModal,
+  onOpenDesktopPackageModal
 }) => {
   const { mode, toggleMode, currentPreset } = useTheme();
-  const { user, logout } = useAuth();
+  const { user, isGuest, logout, openAuthModal } = useAuth();
 
   return (
     <header
@@ -60,6 +62,19 @@ export const TitleBar: React.FC<TitleBarProps> = ({
             >
               <Music className="w-3 h-3 text-cyan-400" />
               <span>Extract Audio</span>
+            </button>
+          )}
+
+          {onOpenDesktopPackageModal && (
+            <button
+              type="button"
+              id="titlebar-desktop-package-btn"
+              onClick={onOpenDesktopPackageModal}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-700/60 text-[11px] font-mono transition-colors shadow-sm"
+              title="Download Desktop App (.exe & Installer)"
+            >
+              <Download className="w-3 h-3 text-emerald-400" />
+              <span>Desktop App (.exe)</span>
             </button>
           )}
         </div>
@@ -111,24 +126,56 @@ export const TitleBar: React.FC<TitleBarProps> = ({
       <div className="flex items-center gap-3">
         {user ? (
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-900 border border-slate-700/80 text-[11px] font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-              <User className="w-3 h-3 text-cyan-400" />
-              <span className="text-slate-200 font-semibold">{user.username}</span>
-              <span className="text-[10px] text-slate-400 px-1 rounded bg-slate-800 border border-slate-700/60 uppercase">
-                {user.role}
-              </span>
-            </div>
-            <button
-              id="titlebar-btn-logout"
-              type="button"
-              onClick={logout}
-              className="flex items-center gap-1 px-2 py-1 rounded bg-slate-900/90 hover:bg-rose-950/80 text-slate-300 hover:text-rose-300 border border-slate-700/80 hover:border-rose-800/80 text-[11px] font-mono transition-colors cursor-pointer"
-              title="Sign Out of SQLite Session"
-            >
-              <LogOut className="w-3 h-3" />
-              <span className="hidden sm:inline">Sign Out</span>
-            </button>
+            {isGuest ? (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#2b2438] border border-[#52446f] text-[11px] font-mono text-[#c5b5ee]">
+                  <Eye className="w-3 h-3 text-[#9b82ff]" />
+                  <span className="font-semibold">Guest Preview</span>
+                  <span className="text-[9px] text-[#a998d4] px-1 rounded bg-[#3b2e54] uppercase">
+                    View Only
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  id="titlebar-btn-create-account"
+                  onClick={() => openAuthModal('register', 'unlock all file actions and conversions')}
+                  className="px-2.5 py-1 rounded bg-[#7354f5] hover:bg-[#8063f9] text-white text-[11px] font-medium transition-colors cursor-pointer shadow-sm"
+                >
+                  Create Account
+                </button>
+                <button
+                  type="button"
+                  id="titlebar-btn-exit-guest"
+                  onClick={logout}
+                  className="flex items-center gap-1 px-2 py-1 rounded bg-slate-900/90 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700/80 text-[11px] font-mono transition-colors cursor-pointer"
+                  title="Exit Guest Mode & Return to Auth Screen"
+                >
+                  <LogOut className="w-3 h-3" />
+                  <span className="hidden sm:inline">Exit</span>
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-900 border border-slate-700/80 text-[11px] font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                  <User className="w-3 h-3 text-cyan-400" />
+                  <span className="text-slate-200 font-semibold">{user.username}</span>
+                  <span className="text-[10px] text-slate-400 px-1 rounded bg-slate-800 border border-slate-700/60 uppercase">
+                    {user.role}
+                  </span>
+                </div>
+                <button
+                  id="titlebar-btn-logout"
+                  type="button"
+                  onClick={logout}
+                  className="flex items-center gap-1 px-2 py-1 rounded bg-slate-900/90 hover:bg-rose-950/80 text-slate-300 hover:text-rose-300 border border-slate-700/80 hover:border-rose-800/80 text-[11px] font-mono transition-colors cursor-pointer"
+                  title="Sign Out of SQLite Session"
+                >
+                  <LogOut className="w-3 h-3" />
+                  <span className="hidden sm:inline">Sign Out</span>
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <div className="hidden xl:flex items-center gap-2 text-[11px] text-slate-400">

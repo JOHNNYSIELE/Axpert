@@ -11,17 +11,20 @@ import {
   FileCheck2,
   Trash2,
   RefreshCw,
-  Loader2
+  Loader2,
+  Lock
 } from 'lucide-react';
 import { MetadataInspectionResult, MetadataStripResult } from '../types';
 import { ipc } from '../lib/ipcBridge';
 import { getMimeType, formatFileSize } from '../services/fileService';
+import { useAuth } from '../context/AuthContext';
 
 interface MetadataToolProps {
   onFileLoadedChange?: (loaded: boolean) => void;
 }
 
 export const MetadataTool: React.FC<MetadataToolProps> = ({ onFileLoadedChange }) => {
+  const { requireAccount, isGuest } = useAuth();
   const [selectedFile, setSelectedFile] = useState<{
     name: string;
     size: number;
@@ -41,6 +44,7 @@ export const MetadataTool: React.FC<MetadataToolProps> = ({ onFileLoadedChange }
 
   // File selection for metadata tool
   const handleSelectFile = async () => {
+    if (!requireAccount('browse and select files for metadata inspection')) return;
     try {
       setErrorMessage(null);
       setStatusMessage(null);
@@ -71,6 +75,7 @@ export const MetadataTool: React.FC<MetadataToolProps> = ({ onFileLoadedChange }
   };
 
   const handleExecuteInspection = async () => {
+    if (!requireAccount('inspect and analyze document metadata')) return;
     if (!selectedFile) return;
     setIsInspecting(true);
     setErrorMessage(null);
@@ -105,6 +110,10 @@ export const MetadataTool: React.FC<MetadataToolProps> = ({ onFileLoadedChange }
     e.stopPropagation();
     setIsDragging(false);
 
+    if (!requireAccount('drag and drop files for metadata inspection')) {
+      return;
+    }
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const f = e.dataTransfer.files[0];
       stageFileForInspection({
@@ -120,6 +129,7 @@ export const MetadataTool: React.FC<MetadataToolProps> = ({ onFileLoadedChange }
 
   // Remove Metadata Action
   const handleRemoveMetadata = async () => {
+    if (!requireAccount('strip metadata and sanitize file')) return;
     if (!selectedFile) return;
 
     setIsStripping(true);
@@ -139,6 +149,7 @@ export const MetadataTool: React.FC<MetadataToolProps> = ({ onFileLoadedChange }
 
   // Save Clean Copy Action
   const handleSaveCleanCopy = async () => {
+    if (!requireAccount('save cleaned file copy')) return;
     if (!stripResult) return;
 
     try {
@@ -245,6 +256,13 @@ export const MetadataTool: React.FC<MetadataToolProps> = ({ onFileLoadedChange }
               : 'border-slate-700/80 bg-slate-900/50 hover:border-slate-600 hover:bg-slate-900/80'
           }`}
         >
+          {isGuest && (
+            <div className="mb-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-950/70 border border-purple-700/60 text-purple-300 text-[11px] font-mono shadow-xs">
+              <Lock className="w-3 h-3 text-purple-400" />
+              <span>Guest Preview Mode • Uploads require account</span>
+            </div>
+          )}
+
           <div className="w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700 mx-auto flex items-center justify-center text-cyan-400 mb-4">
             <Upload className="w-7 h-7" />
           </div>

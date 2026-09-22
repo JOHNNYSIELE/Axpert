@@ -6,6 +6,7 @@
  */
 
 import React, { useState } from 'react';
+import { Eye, ArrowRight } from 'lucide-react';
 import { TitleBar } from './components/TitleBar';
 import { Sidebar, ActiveTab } from './components/Sidebar';
 import { FileConverter } from './components/FileConverter';
@@ -17,13 +18,17 @@ import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { ThemeSelectorModal } from './components/ThemeSelector';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthLandingWindow } from './components/AuthLandingWindow';
+import { AccountRequiredModal } from './components/AccountRequiredModal';
+import { DesktopPackageModal } from './components/DesktopPackageModal';
 
 function MainDesktopWindow() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('converter');
   const [queueCount, setQueueCount] = useState<number>(0);
   const [metadataFileLoaded, setMetadataFileLoaded] = useState<boolean>(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState<boolean>(false);
+  const [isDesktopPackageModalOpen, setIsDesktopPackageModalOpen] = useState<boolean>(false);
   const { mode } = useTheme();
+  const { isGuest, openAuthModal } = useAuth();
 
   return (
     <div
@@ -37,7 +42,45 @@ function MainDesktopWindow() {
         onOpenQuickOcr={() => setActiveTab('ocr')}
         onOpenAudioExtractor={() => setActiveTab('audio')}
         onOpenThemeModal={() => setIsThemeModalOpen(true)}
+        onOpenDesktopPackageModal={() => setIsDesktopPackageModalOpen(true)}
       />
+
+      {/* Guest Mode Notification Banner */}
+      {isGuest && (
+        <div
+          id="guest-mode-banner"
+          className="bg-gradient-to-r from-[#2c223d] via-[#231a31] to-[#2c223d] border-b border-[#524173] px-3 sm:px-4 py-2 flex items-center justify-between text-xs text-[#ded5f2] select-none shadow-sm z-30 shrink-0"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#7c5cfc]/25 border border-[#7c5cfc]/50 text-[#cbbfff] font-semibold text-[10px] tracking-wide uppercase font-mono shrink-0">
+              <Eye className="w-3 h-3" />
+              Guest Preview
+            </span>
+            <span className="text-slate-300 truncate">
+              You are exploring AXpert features in view-only mode. File conversions, OCR, and uploads require creating an account.
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 pl-2">
+            <button
+              type="button"
+              id="banner-btn-create-account"
+              onClick={() => openAuthModal('register', 'upload files and run file operations')}
+              className="px-3 py-1 rounded-lg bg-[#7354f5] hover:bg-[#8063f9] text-white font-medium text-xs transition-colors cursor-pointer shadow-sm flex items-center gap-1.5"
+            >
+              <span>Create Account</span>
+              <ArrowRight className="w-3 h-3" />
+            </button>
+            <button
+              type="button"
+              id="banner-btn-signin"
+              onClick={() => openAuthModal('signin')}
+              className="hidden sm:inline-block px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 text-xs transition-colors cursor-pointer"
+            >
+              Sign In
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Desktop Window Body */}
       <div className="flex-1 flex overflow-hidden">
@@ -48,6 +91,7 @@ function MainDesktopWindow() {
           queueCount={queueCount}
           metadataFileLoaded={metadataFileLoaded}
           onOpenThemeModal={() => setIsThemeModalOpen(true)}
+          onOpenDesktopPackageModal={() => setIsDesktopPackageModalOpen(true)}
         />
 
         {/* Primary Functional Workspace */}
@@ -77,6 +121,15 @@ function MainDesktopWindow() {
         isOpen={isThemeModalOpen}
         onClose={() => setIsThemeModalOpen(false)}
       />
+
+      {/* Desktop App Package & Windows Executable Modal */}
+      <DesktopPackageModal
+        isOpen={isDesktopPackageModalOpen}
+        onClose={() => setIsDesktopPackageModalOpen(false)}
+      />
+
+      {/* Account Required Action Guard Modal */}
+      <AccountRequiredModal />
     </div>
   );
 }

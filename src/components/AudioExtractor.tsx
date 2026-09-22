@@ -20,14 +20,17 @@ import {
   Layers,
   Sparkles,
   Radio,
-  Trash2
+  Trash2,
+  Lock
 } from 'lucide-react';
 import { AudioExtractionOptions, AudioExtractionResult } from '../types';
 import { extractAudioFromVideo } from '../services/audioExtractor';
 import { formatFileSize } from '../services/fileService';
 import { engineTelemetry } from '../services/engineTelemetry';
+import { useAuth } from '../context/AuthContext';
 
 export const AudioExtractor: React.FC = () => {
+  const { requireAccount, isGuest } = useAuth();
   const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [isExtracting, setIsExtracting] = useState<boolean>(false);
@@ -52,11 +55,16 @@ export const AudioExtractor: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const handleSelectFile = () => {
+    if (!requireAccount('browse and upload video files for audio extraction')) return;
     fileInputRef.current?.click();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
+      if (!requireAccount('upload video files for audio extraction')) {
+        e.target.value = '';
+        return;
+      }
       loadVideoFile(e.target.files[0]);
     }
   };
@@ -77,6 +85,10 @@ export const AudioExtractor: React.FC = () => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
+
+    if (!requireAccount('drag and drop video files for audio extraction')) {
+      return;
+    }
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
@@ -107,6 +119,7 @@ export const AudioExtractor: React.FC = () => {
   };
 
   const handleExtractAudio = async () => {
+    if (!requireAccount('extract audio streams from video')) return;
     if (!selectedVideo) return;
 
     setIsExtracting(true);
@@ -142,6 +155,7 @@ export const AudioExtractor: React.FC = () => {
   };
 
   const handleDownload = () => {
+    if (!requireAccount('download extracted audio file')) return;
     if (!result) return;
     const link = document.createElement('a');
     link.href = result.audioUrl;
@@ -266,6 +280,13 @@ export const AudioExtractor: React.FC = () => {
               : 'border-slate-700/80 bg-slate-900/50 hover:border-cyan-500/60 hover:bg-slate-900/80'
           }`}
         >
+          {isGuest && (
+            <div className="mb-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-950/70 border border-purple-700/60 text-purple-300 text-[11px] font-mono shadow-xs">
+              <Lock className="w-3 h-3 text-purple-400" />
+              <span>Guest Preview Mode • Uploads require account</span>
+            </div>
+          )}
+
           <div className="w-16 h-16 rounded-2xl bg-slate-800/90 border border-slate-700 mx-auto flex items-center justify-center text-cyan-400 mb-4 shadow-md">
             <Film className="w-8 h-8" />
           </div>

@@ -25,7 +25,8 @@ import {
 import { ipc } from '../lib/ipcBridge';
 import { formatFileSize, getFileExtension, getMimeType } from '../services/fileService';
 import { engineTelemetry } from '../services/engineTelemetry';
-import { Zap, Music } from 'lucide-react';
+import { Zap, Music, Lock } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const AVAILABLE_FORMATS = [
   { value: 'pdf', label: 'PDF — Portable Document Format' },
@@ -46,6 +47,8 @@ export const FileConverter: React.FC<FileConverterProps> = ({
   onOpenOcr,
   onOpenAudioExtractor
 }) => {
+  const { requireAccount, isGuest } = useAuth();
+
   // Queue state
   const [queue, setQueue] = useState<FileQueueItem[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -164,6 +167,10 @@ export const FileConverter: React.FC<FileConverterProps> = ({
     e.stopPropagation();
     setIsDragging(false);
 
+    if (!requireAccount('drag and drop files for conversion')) {
+      return;
+    }
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const droppedFiles = Array.from(e.dataTransfer.files).map((f) => ({
         name: f.name,
@@ -178,6 +185,10 @@ export const FileConverter: React.FC<FileConverterProps> = ({
 
   // Browse file button via IPC or input
   const handleBrowseFiles = async () => {
+    if (!requireAccount('browse and upload files for conversion')) {
+      return;
+    }
+
     try {
       const selected = await ipc.selectFiles();
       if (selected && selected.length > 0) {
@@ -228,6 +239,10 @@ export const FileConverter: React.FC<FileConverterProps> = ({
 
   // Execute Converter
   const handleExecuteConverter = async () => {
+    if (!requireAccount('execute batch file conversion')) {
+      return;
+    }
+
     const queuedItems = queue.filter((i) => i.status === 'QUEUED' || i.status === 'FAILED');
 
     if (queuedItems.length === 0) {
@@ -296,6 +311,9 @@ export const FileConverter: React.FC<FileConverterProps> = ({
 
   // Convert single item explicitly
   const handleConvertSingleItem = async (item: FileQueueItem) => {
+    if (!requireAccount('convert this file')) {
+      return;
+    }
     if (item.status === 'PROCESSING') return;
     try {
       const jobId = `job-single-${item.id}-${Date.now()}`;
@@ -490,6 +508,10 @@ export const FileConverter: React.FC<FileConverterProps> = ({
             className="hidden"
             onChange={(e) => {
               if (e.target.files) {
+                if (!requireAccount('upload files for conversion')) {
+                  e.target.value = '';
+                  return;
+                }
                 const files = Array.from(e.target.files).map((f) => ({
                   name: f.name,
                   size: f.size,
@@ -501,6 +523,13 @@ export const FileConverter: React.FC<FileConverterProps> = ({
               }
             }}
           />
+
+          {isGuest && (
+            <div className="mb-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-950/70 border border-purple-700/60 text-purple-300 text-[11px] font-mono shadow-xs">
+              <Lock className="w-3 h-3 text-purple-400" />
+              <span>Guest Preview Mode • Uploads require account</span>
+            </div>
+          )}
 
           <div
             className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-all ${

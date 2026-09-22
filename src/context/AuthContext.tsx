@@ -7,8 +7,15 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { AuthUser, AuthAuditLog, SqliteTableInfo } from '../types';
 import { sqliteAuth } from '../services/sqliteAuthService';
 
+export interface AuthModalState {
+  isOpen: boolean;
+  mode: 'register' | 'signin';
+  reason?: string;
+}
+
 interface AuthContextType {
   user: AuthUser | null;
+  isGuest: boolean;
   sessionToken: string | null;
   isLoading: boolean;
   isReady: boolean;
@@ -22,6 +29,11 @@ interface AuthContextType {
     fullName?: string
   ) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  enterAsGuest: () => void;
+  requireAccount: (actionDescription?: string) => boolean;
+  authModalState: AuthModalState;
+  openAuthModal: (mode?: 'register' | 'signin', reason?: string) => void;
+  closeAuthModal: () => void;
   auditLogs: AuthAuditLog[];
   tableInfo: SqliteTableInfo[];
   refreshData: () => void;
@@ -41,6 +53,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [initError, setInitError] = useState<string | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuthAuditLog[]>([]);
   const [tableInfo, setTableInfo] = useState<SqliteTableInfo[]>([]);
+
+  // Guest & Action Guard Modal State
+  const [authModalState, setAuthModalState] = useState<AuthModalState>({
+    isOpen: false,
+    mode: 'register'
+  });
+
+  const isGuest = Boolean(user?.isGuest || user?.role === 'guest');
+
+  const openAuthModal = useCallback((mode: 'register' | 'signin' = 'register', reason?: string) => {
+    setAuthModalState({
+      isOpen: true,
+      mode,
+      reason
+    });
+  }, []);
+
+  const closeAuthModal = useCallback(() => {
+    setAuthModalState((prev) => ({ ...prev, isOpen: false }));
+  }, []);
+
+  const enterAsGuest = useCallback(() => {
+    const guestUser: AuthUser = {
+      id: 'usr_guest',
+      email: 'guest@preview.local',
+      username: 'Guest Explorer',
+      fullName: 'Guest (Preview Mode)',
+      role: 'guest',
+      createdAt: new Date().toISOString(),
+      isGuest: true
+    };
+    setUser(guestUser);
+    setSessionToken(null);
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    closeAuthModal();
+  }, [closeAuthModal]);
+
+  const requireAccount = useCallback((actionDescription?: string): boolean => {
+    // If user is logged in as a real non-guest account, allow action
+    if (user && !user.isGuest && user.role !== 'guest') {
+      return true;
+    }
+
+    // Otherwise block action and open the account creation modal
+    openAuthModal(
+      'register',
+      actionDescription
+        ? `To ${actionDescription}, please create an account.`
+        : 'Please create an account to use this action.'
+    );
+    return false;
+  }, [user, openAuthModal]);
 
   const refreshData = useCallback(() => {
     try {
@@ -111,6 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSessionToken(result.sessionToken);
         localStorage.setItem(SESSION_STORAGE_KEY, result.sessionToken);
         refreshData();
+        closeAuthModal();
         return { success: true };
       }
       return { success: false, error: result.error || 'Authentication failed' };
@@ -133,8 +198,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSessionToken(loginResult.sessionToken);
         localStorage.setItem(SESSION_STORAGE_KEY, loginResult.sessionToken);
         refreshData();
+        closeAuthModal();
         return { success: true };
       }
+      closeAuthModal();
       return { success: true };
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : 'Registration failed' };
@@ -148,6 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setSessionToken(null);
     localStorage.removeItem(SESSION_STORAGE_KEY);
+    closeAuthModal();
     refreshData();
   };
 
@@ -172,6 +240,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setSessionToken(null);
     localStorage.removeItem(SESSION_STORAGE_KEY);
+    closeAuthModal();
     refreshData();
   };
 
@@ -179,6 +248,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         user,
+        isGuest,
         sessionToken,
         isLoading,
         isReady,
@@ -187,6 +257,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         logout,
+        enterAsGuest,
+        requireAccount,
+        authModalState,
+        openAuthModal,
+        closeAuthModal,
         auditLogs,
         tableInfo,
         refreshData,

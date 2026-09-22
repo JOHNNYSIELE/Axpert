@@ -20,11 +20,13 @@ import {
   FileCheck2,
   FileCode,
   FileSpreadsheet,
-  Trash2
+  Trash2,
+  Lock
 } from 'lucide-react';
 import { PdfOcrResult } from '../types';
 import { processPdfOcr } from '../services/pdfOcrService';
 import { formatFileSize } from '../services/fileService';
+import { useAuth } from '../context/AuthContext';
 
 interface QuickPdfOcrToolProps {
   onClose?: () => void;
@@ -32,6 +34,7 @@ interface QuickPdfOcrToolProps {
 }
 
 export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = false }) => {
+  const { requireAccount, isGuest } = useAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
@@ -47,11 +50,16 @@ export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = f
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSelectFile = () => {
+    if (!requireAccount('browse and upload PDF documents for OCR')) return;
     fileInputRef.current?.click();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
+      if (!requireAccount('upload PDF documents for OCR text extraction')) {
+        e.target.value = '';
+        return;
+      }
       const file = e.target.files[0];
       handleSelectPdf(file);
     }
@@ -74,6 +82,10 @@ export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = f
     e.stopPropagation();
     setIsDragging(false);
 
+    if (!requireAccount('drag and drop PDF documents for OCR extraction')) {
+      return;
+    }
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
       if (file.name.toLowerCase().endsWith('.pdf') || file.type.includes('pdf')) {
@@ -93,6 +105,7 @@ export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = f
   };
 
   const executeOcrOnFile = async () => {
+    if (!requireAccount('run OCR text extraction')) return;
     if (!selectedFile) return;
     setErrorMessage(null);
     setIsProcessing(true);
@@ -115,6 +128,7 @@ export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = f
   };
 
   const handleDownloadTxt = () => {
+    if (!requireAccount('download extracted TXT document')) return;
     if (!ocrResult) return;
     const link = document.createElement('a');
     link.href = ocrResult.txtUrl;
@@ -125,6 +139,7 @@ export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = f
   };
 
   const handleDownloadDocx = () => {
+    if (!requireAccount('download extracted DOCX document')) return;
     if (!ocrResult) return;
     const link = document.createElement('a');
     link.href = ocrResult.docxUrl;
@@ -244,6 +259,13 @@ export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = f
               : 'border-slate-700/80 bg-slate-900/50 hover:border-blue-500/60 hover:bg-slate-900/80'
           }`}
         >
+          {isGuest && (
+            <div className="mb-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-950/70 border border-purple-700/60 text-purple-300 text-[11px] font-mono shadow-xs">
+              <Lock className="w-3 h-3 text-purple-400" />
+              <span>Guest Preview Mode • Uploads require account</span>
+            </div>
+          )}
+
           <div className="w-16 h-16 rounded-2xl bg-slate-800/90 border border-slate-700 mx-auto flex items-center justify-center text-blue-400 mb-4 shadow-md">
             <Upload className="w-8 h-8" />
           </div>

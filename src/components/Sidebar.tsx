@@ -13,7 +13,10 @@ import {
   Check,
   User,
   LogOut,
-  Database
+  Database,
+  Eye,
+  Lock,
+  Download
 } from 'lucide-react';
 import { useTheme, THEME_PRESETS, ThemePreset } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +29,7 @@ interface SidebarProps {
   queueCount: number;
   metadataFileLoaded: boolean;
   onOpenThemeModal?: () => void;
+  onOpenDesktopPackageModal?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -33,10 +37,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   queueCount,
   metadataFileLoaded,
-  onOpenThemeModal
+  onOpenThemeModal,
+  onOpenDesktopPackageModal
 }) => {
   const { mode, toggleMode, preset, setPreset, currentPreset } = useTheme();
-  const { user, logout } = useAuth();
+  const { user, isGuest, logout, openAuthModal } = useAuth();
 
   return (
     <aside
@@ -319,42 +324,109 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* Authenticated User & SQLite Session Box */}
+        {/* Windows Desktop App Package (.exe) Button */}
+        {onOpenDesktopPackageModal && (
+          <button
+            type="button"
+            id="sidebar-desktop-package-btn"
+            onClick={onOpenDesktopPackageModal}
+            className="w-full p-2.5 rounded-xl bg-gradient-to-r from-blue-950/60 to-cyan-950/50 border border-blue-800/60 hover:border-cyan-500/80 text-left transition-all group cursor-pointer"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-blue-900/60 border border-blue-700/80 text-cyan-400 flex items-center justify-center shrink-0">
+                  <Download className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-semibold text-slate-100 group-hover:text-cyan-300 transition-colors truncate">
+                    Desktop .exe Package
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-mono truncate">
+                    Target: C:\Users\Admin...
+                  </div>
+                </div>
+              </div>
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-800/60 text-emerald-400 font-mono shrink-0">
+                Ready
+              </span>
+            </div>
+          </button>
+        )}
+
+        {/* Authenticated User or Guest Session Box */}
         {user && (
           <div
             id="sidebar-user-card"
             className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/90 space-y-2 mb-2"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 min-w-0">
-                <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-xs"
-                  style={{
-                    background: `linear-gradient(135deg, ${currentPreset.secondary}, ${currentPreset.primary})`
-                  }}
+            {isGuest ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-[#3b2e54] border border-[#5a487f] flex items-center justify-center text-[#c2b2fa] shrink-0">
+                      <Eye className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold text-slate-200 truncate">
+                        Guest Explorer
+                      </div>
+                      <div className="text-[10px] text-amber-400 font-mono flex items-center gap-1">
+                        <Lock className="w-2.5 h-2.5" />
+                        <span>View Only</span>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    id="sidebar-btn-signout"
+                    type="button"
+                    onClick={logout}
+                    title="Exit Guest Mode"
+                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  id="sidebar-btn-unlock-account"
+                  onClick={() => openAuthModal('register', 'unlock file uploads and full processing features')}
+                  className="w-full py-1.5 px-2 rounded-lg bg-[#7354f5] hover:bg-[#8063f9] text-white text-[11px] font-medium transition-colors cursor-pointer shadow-sm text-center"
                 >
-                  {user.username.slice(0, 2).toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-semibold text-slate-200 truncate">
-                    {user.fullName || user.username}
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                    <span className="capitalize">{user.role}</span>
-                  </div>
-                </div>
+                  Create Account to Unlock
+                </button>
               </div>
-              <button
-                id="sidebar-btn-signout"
-                type="button"
-                onClick={logout}
-                title="Sign Out of SQLite Session"
-                className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-950/80 text-slate-400 hover:text-rose-300 border border-slate-800 hover:border-rose-800/80 transition-colors cursor-pointer"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div
+                    className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-xs"
+                    style={{
+                      background: `linear-gradient(135deg, ${currentPreset.secondary}, ${currentPreset.primary})`
+                    }}
+                  >
+                    {user.username.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-slate-200 truncate">
+                      {user.fullName || user.username}
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                      <span className="capitalize">{user.role}</span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  id="sidebar-btn-signout"
+                  type="button"
+                  onClick={logout}
+                  title="Sign Out of SQLite Session"
+                  className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-950/80 text-slate-400 hover:text-rose-300 border border-slate-800 hover:border-rose-800/80 transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
 
             <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 pt-1 border-t border-slate-800/60">
               <span className="flex items-center gap-1 text-cyan-400">

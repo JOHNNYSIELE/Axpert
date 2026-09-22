@@ -121,7 +121,7 @@ class SqliteAuthService {
         }
 
         this.applySchema();
-        await this.seedDefaultAdminIfEmpty();
+        this.cleanupPreconfiguredUsers();
         await this.persist();
         this.isInitialized = true;
       } catch (err) {
@@ -174,38 +174,14 @@ class SqliteAuthService {
     `);
   }
 
-  private async seedDefaultAdminIfEmpty(): Promise<void> {
+  private cleanupPreconfiguredUsers(): void {
     if (!db) return;
-
-    const count = this.getUserCount();
-    if (count === 0) {
-      const salt = generateRandomHex(16);
-      const passwordHash = await hashPassword('AdminPass123!', salt);
-      const now = new Date().toISOString();
-
-      const stmt = db.prepare(`
-        INSERT INTO users (id, email, username, password_hash, salt, role, full_name, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      stmt.run([
-        'usr_admin_default',
-        'admin@axpert.local',
-        'admin',
-        passwordHash,
-        salt,
-        'admin',
-        'System Administrator',
-        now
-      ]);
-      stmt.free();
-
-      this.logAudit({
-        userId: 'usr_admin_default',
-        email: 'admin@axpert.local',
-        eventType: 'DB_INIT',
-        description: 'SQLite database initialized with default offline administrator account (admin@axpert.local).'
-      });
+    try {
+      // Purge any preconfigured, hardcoded, or demo accounts to enforce strictly user-created accounts
+      db.run("DELETE FROM users WHERE id = 'usr_admin_default' OR email = 'admin@axpert.local' OR username = 'admin'");
+      db.run("DELETE FROM sessions WHERE user_id = 'usr_admin_default'");
+    } catch (err) {
+      console.warn('[SQLite Engine] Cleanup preconfigured accounts check:', err);
     }
   }
 

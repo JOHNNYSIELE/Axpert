@@ -180,9 +180,10 @@ export interface AuthUser {
   email: string;
   username: string;
   fullName: string;
-  role: 'admin' | 'operator' | 'analyst';
+  role: 'admin' | 'operator' | 'analyst' | 'guest';
   createdAt: string;
   lastLogin?: string;
+  isGuest?: boolean;
 }
 
 export interface AuthSession {

@@ -1,56 +1,105 @@
 /**
  * @file src/components/AuthLandingWindow.tsx
- * Primary Desktop Landing Window for User Registration & Sign In.
- * Powered by local offline SQLite with zero cloud dependencies.
+ * Minimalist Desktop Authentication Window inspired by clean modern UI design.
+ * Features a left-hand atmospheric carousel and a clean right-hand authentication form,
+ * fully integrated with the local offline SQLite database.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Lock,
-  Mail,
-  User,
   Eye,
   EyeOff,
+  Sparkles,
   Database,
   ArrowRight,
   ShieldCheck,
+  Check,
   HardDrive,
-  Sparkles,
-  CheckCircle2,
-  AlertCircle,
   KeyRound,
-  Download,
-  Info
+  ExternalLink,
+  ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { TitleBar } from './TitleBar';
 import { ThemeSelectorModal } from './ThemeSelector';
 
-export const AuthLandingWindow: React.FC = () => {
-  const { login, register, exportDatabaseFile, isReady } = useAuth();
-  const { mode, currentPreset } = useTheme();
+interface CarouselSlide {
+  id: number;
+  image: string;
+  fallbackBg: string;
+  titlePart1: string;
+  titlePart2: string;
+  subtitle: string;
+  tag: string;
+}
 
-  const [activeTab, setActiveTab] = useState<'signin' | 'register'>('signin');
+const CAROUSEL_SLIDES: CarouselSlide[] = [
+  {
+    id: 0,
+    image: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=1200&q=80',
+    fallbackBg: 'linear-gradient(145deg, #2e2640, #1c1829)',
+    titlePart1: 'Capturing Moments,',
+    titlePart2: 'Creating Memories',
+    subtitle: 'Native offline workstation with zero network ingress and 100% data privacy.',
+    tag: 'OFFLINE SQLITE'
+  },
+  {
+    id: 1,
+    image: 'https://images.unsplash.com/photo-1518457607834-6e8d80c183c5?auto=format&fit=crop&w=1200&q=80',
+    fallbackBg: 'linear-gradient(145deg, #221f33, #151320)',
+    titlePart1: 'High-Velocity Engine,',
+    titlePart2: 'Local Media Suite',
+    subtitle: 'Transform documents, audio tracks, and images in milliseconds.',
+    tag: 'TURBO CONVERTER'
+  },
+  {
+    id: 2,
+    image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=80',
+    fallbackBg: 'linear-gradient(145deg, #1f1b2b, #13101c)',
+    titlePart1: 'Salted Cryptography,',
+    titlePart2: 'Uncompromised Safety',
+    subtitle: 'Relational SQLite 3.45 with SHA-256 password hashing stored locally in IndexedDB.',
+    tag: 'HARDENED SECURITY'
+  }
+];
+
+export const AuthLandingWindow: React.FC = () => {
+  const { login, register, enterAsGuest, isReady } = useAuth();
+  const { mode } = useTheme();
+
+  // Mode: 'register' (matches screenshot default) or 'signin'
+  const [activeTab, setActiveTab] = useState<'register' | 'signin'>('register');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState<boolean>(false);
+  const [agreeTerms, setAgreeTerms] = useState<boolean>(true);
+  const [showTermsModal, setShowTermsModal] = useState<boolean>(false);
 
-  // Sign In state
+  // Carousel active index
+  const [currentSlide, setCurrentSlide] = useState<number>(0);
+
+  // Register Form Fields (Clean inputs with no preconfigured values)
+  const [regFirstName, setRegFirstName] = useState<string>('');
+  const [regLastName, setRegLastName] = useState<string>('');
+  const [regEmail, setRegEmail] = useState<string>('');
+  const [regPassword, setRegPassword] = useState<string>('');
+
+  // Sign In Form Fields
   const [loginIdentifier, setLoginIdentifier] = useState<string>('');
   const [loginPassword, setLoginPassword] = useState<string>('');
 
-  // Register state
-  const [regFullName, setRegFullName] = useState<string>('');
-  const [regUsername, setRegUsername] = useState<string>('');
-  const [regEmail, setRegEmail] = useState<string>('');
-  const [regPassword, setRegPassword] = useState<string>('');
-  const [regConfirmPassword, setRegConfirmPassword] = useState<string>('');
-  const [regRole, setRegRole] = useState<'operator' | 'analyst' | 'admin'>('operator');
-
-  // Status & error states
+  // State
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Auto advance carousel every 7 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % CAROUSEL_SLIDES.length);
+    }, 7000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +107,7 @@ export const AuthLandingWindow: React.FC = () => {
     setSuccessMessage(null);
 
     if (!loginIdentifier.trim() || !loginPassword) {
-      setErrorMessage('Please enter both your email/username and password.');
+      setErrorMessage('Please enter both your email or username and password.');
       return;
     }
 
@@ -66,7 +115,7 @@ export const AuthLandingWindow: React.FC = () => {
     try {
       const res = await login(loginIdentifier, loginPassword);
       if (!res.success) {
-        setErrorMessage(res.error || 'Authentication failed. Please verify credentials.');
+        setErrorMessage(res.error || 'Invalid credentials. Please verify and try again.');
       }
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Login failed');
@@ -80,30 +129,33 @@ export const AuthLandingWindow: React.FC = () => {
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    if (!regUsername.trim()) {
-      setErrorMessage('Please provide a unique username.');
-      return;
-    }
+    const fullName = [regFirstName.trim(), regLastName.trim()].filter(Boolean).join(' ');
+    const username = (regFirstName.trim() || 'user')
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, '')
+      .slice(0, 20);
+
     if (!regEmail.trim() || !regEmail.includes('@')) {
-      setErrorMessage('Please enter a valid email address.');
+      setErrorMessage('Please provide a valid email address.');
       return;
     }
     if (regPassword.length < 6) {
-      setErrorMessage('Password must be at least 6 characters.');
+      setErrorMessage('Password must be at least 6 characters long.');
       return;
     }
-    if (regPassword !== regConfirmPassword) {
-      setErrorMessage('Passwords do not match. Please verify.');
+    if (!agreeTerms) {
+      setErrorMessage('Please accept the Terms & Conditions to proceed.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const res = await register(regUsername, regEmail, regPassword, regFullName);
+      const finalUsername = username || `user_${Date.now().toString().slice(-4)}`;
+      const res = await register(finalUsername, regEmail, regPassword, fullName);
       if (!res.success) {
         setErrorMessage(res.error || 'Registration failed.');
       } else {
-        setSuccessMessage('Account registered and authenticated successfully!');
+        setSuccessMessage('Account created successfully!');
       }
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Registration failed');
@@ -112,19 +164,12 @@ export const AuthLandingWindow: React.FC = () => {
     }
   };
 
-  const fillDemoAdmin = () => {
-    setActiveTab('signin');
-    setLoginIdentifier('admin@axpert.local');
-    setLoginPassword('AdminPass123!');
-    setErrorMessage(null);
-  };
+  const slide = CAROUSEL_SLIDES[currentSlide];
 
   return (
     <div
       id="landing-auth-window"
-      className={`w-screen h-screen flex flex-col font-sans overflow-hidden select-none transition-colors duration-200 ${
-        mode === 'dark' ? 'bg-[#0b0f17] text-slate-100' : 'bg-slate-100 text-slate-900'
-      }`}
+      className="w-screen h-screen flex flex-col font-sans overflow-hidden select-none bg-[#201d2a] text-[#f2eff8]"
     >
       {/* Native Desktop Window Frame */}
       <TitleBar
@@ -132,379 +177,410 @@ export const AuthLandingWindow: React.FC = () => {
         onOpenThemeModal={() => setIsThemeModalOpen(true)}
       />
 
-      {/* Main Authentication Landing Canvas */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto relative">
-        {/* Subtle Decorative Ambient Background Glow */}
+      {/* Main Centered Stage */}
+      <main className="flex-1 flex items-center justify-center p-3 sm:p-6 md:p-8 overflow-y-auto">
+        {/* Master Card Frame matching the uploaded design */}
         <div
-          className="absolute w-[500px] h-[500px] rounded-full blur-[140px] pointer-events-none opacity-20 -top-20 -right-20"
-          style={{ backgroundColor: currentPreset.primary }}
-        />
-        <div
-          className="absolute w-[400px] h-[400px] rounded-full blur-[140px] pointer-events-none opacity-15 -bottom-20 -left-20"
-          style={{ backgroundColor: currentPreset.secondary }}
-        />
-
-        <div className="w-full max-w-lg z-10 space-y-5 animate-in fade-in zoom-in-95 duration-200">
-          {/* Brand Header */}
-          <div className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center">
+          id="auth-master-card"
+          className="w-full max-w-[1020px] rounded-3xl bg-[#262232] border border-[#352f45] shadow-2xl p-3 sm:p-4 md:p-5 flex flex-col md:grid md:grid-cols-12 gap-5 md:gap-8 items-stretch overflow-hidden transition-all duration-300"
+        >
+          {/* ========================================================================= */}
+          {/* LEFT SIDE: Atmospheric Visual Card with Dune Image and Carousel          */}
+          {/* ========================================================================= */}
+          <section
+            aria-label="Welcome Visual Carousel"
+            className="md:col-span-6 min-h-[380px] sm:min-h-[460px] md:min-h-[580px] relative rounded-2xl overflow-hidden flex flex-col justify-between p-6 sm:p-7 md:p-8 bg-[#1a1724] border border-[#373147] shadow-inner group"
+          >
+            {/* Background Image with Twilight Purple Dusk Overlays */}
+            <div className="absolute inset-0 z-0 overflow-hidden">
+              <img
+                key={slide.id}
+                src={slide.image}
+                alt={slide.titlePart1}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover object-center transform scale-105 transition-transform duration-1000 ease-out"
+                onError={(e) => {
+                  // Fallback to elegant CSS twilight dune gradient if network restricts images
+                  (e.currentTarget as HTMLElement).style.display = 'none';
+                }}
+              />
+              {/* Deep Dusk Violet Gradients for Exact Visual Atmosphere */}
               <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl text-white font-bold tracking-tight mb-1"
+                className="absolute inset-0"
                 style={{
-                  background: `linear-gradient(135deg, ${currentPreset.secondary}, ${currentPreset.primary})`,
-                  boxShadow: `0 8px 24px ${currentPreset.primary}40`
+                  background:
+                    'linear-gradient(180deg, rgba(24, 21, 33, 0.45) 0%, rgba(30, 24, 45, 0.2) 40%, rgba(19, 16, 28, 0.92) 85%, rgba(17, 14, 25, 0.98) 100%)'
                 }}
-              >
-                <span className="text-2xl font-mono">AX</span>
-              </div>
+              />
+              {/* Subtle Ambient Radial Glow */}
+              <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-[#161321] via-[#211a33]/60 to-transparent pointer-events-none" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              AXpert Desktop Suite
-            </h1>
-            <p className="text-xs text-slate-400 font-mono flex items-center justify-center gap-2">
-              <span>Native Offline Workstation</span>
-              <span>•</span>
-              <span className="text-cyan-400 flex items-center gap-1">
-                <Database className="w-3 h-3" />
-                SQLite Engine v3.45 (Local)
-              </span>
-            </p>
-          </div>
 
-          {/* Database Architecture Notice Banner */}
-          <div
-            className={`p-3 rounded-xl border text-xs flex items-start gap-3 transition-colors ${
-              mode === 'dark'
-                ? 'bg-slate-900/90 border-slate-800 text-slate-300'
-                : 'bg-white border-slate-200 text-slate-600 shadow-sm'
-            }`}
-          >
-            <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0 mt-0.5">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-            <div className="flex-1 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-slate-200">
-                  100% Offline SQLite Database
+            {/* Top Navigation Row inside Left Panel */}
+            <div className="relative z-10 flex items-center justify-between">
+              {/* Stylized Modern Brand Logo (Inspired by AMU mark) */}
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold tracking-tight text-xl sm:text-2xl text-white font-sans flex items-center">
+                  <span className="tracking-widest">AMU</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#7c5cfc] ml-1.5 animate-pulse" />
                 </span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800/80">
-                  OFFLINE READY
+                <span className="hidden sm:inline-block text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/10 backdrop-blur-md text-slate-300 border border-white/10">
+                  v3.45 Local
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                User accounts, salted SHA-256 password digests, and audit logs are safely stored in a local SQLite file (<code>axpert_auth.sqlite</code>) backed by browser IndexedDB. Zero cloud network telemetry required.
-              </p>
-            </div>
-          </div>
 
-          {/* Auth Card Container */}
-          <div
-            id="auth-main-card"
-            className={`rounded-2xl border shadow-2xl p-6 space-y-5 backdrop-blur-md transition-colors ${
-              mode === 'dark'
-                ? 'bg-slate-900/95 border-slate-800 text-slate-100'
-                : 'bg-white border-slate-200 text-slate-900'
-            }`}
-          >
-            {/* Segmented Tab Bar (Sign In vs Register) */}
-            <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-slate-950/60 border border-slate-800/80">
+              {/* Explore as Guest Preview Button */}
               <button
-                id="tab-btn-signin"
                 type="button"
-                onClick={() => {
-                  setActiveTab('signin');
-                  setErrorMessage(null);
-                  setSuccessMessage(null);
-                }}
-                className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  activeTab === 'signin'
-                    ? 'bg-slate-800 text-cyan-400 shadow-sm border border-cyan-500/30'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
+                id="btn-explore-as-guest-top"
+                onClick={enterAsGuest}
+                className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 text-xs text-white font-medium flex items-center gap-1.5 transition-all duration-200 cursor-pointer shadow-sm active:scale-95"
+                title="Explore workstation features in view-only preview mode"
               >
-                Sign In
-              </button>
-              <button
-                id="tab-btn-register"
-                type="button"
-                onClick={() => {
-                  setActiveTab('register');
-                  setErrorMessage(null);
-                  setSuccessMessage(null);
-                }}
-                className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  activeTab === 'register'
-                    ? 'bg-slate-800 text-cyan-400 shadow-sm border border-cyan-500/30'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Create Account (Register)
+                <span>Explore as Guest</span>
+                <span className="text-white/70">→</span>
               </button>
             </div>
 
-            {/* Error & Success Alerts */}
+            {/* Bottom Caption & Interactive Carousel Indicators */}
+            <div className="relative z-10 space-y-5 pt-20">
+              <div className="space-y-1.5 max-w-sm">
+                <h2 className="text-2xl sm:text-3xl font-normal tracking-tight text-white leading-tight">
+                  <span className="block">{slide.titlePart1}</span>
+                  <span className="block text-white/95 font-medium">{slide.titlePart2}</span>
+                </h2>
+                <p className="text-xs sm:text-[13px] text-white/75 font-light leading-relaxed line-clamp-2">
+                  {slide.subtitle}
+                </p>
+              </div>
+
+              {/* Minimalist Carousel Indicators */}
+              <div className="flex items-center gap-2 pt-1" role="tablist" aria-label="Slide indicators">
+                {CAROUSEL_SLIDES.map((s, idx) => {
+                  const isActive = idx === currentSlide;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      aria-label={`Slide ${idx + 1}`}
+                      onClick={() => setCurrentSlide(idx)}
+                      className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                        isActive
+                          ? 'w-7 bg-white shadow-sm'
+                          : 'w-3.5 bg-white/35 hover:bg-white/60'
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
+          {/* ========================================================================= */}
+          {/* RIGHT SIDE: Clean Minimalist Authentication Form                          */}
+          {/* ========================================================================= */}
+          <section
+            aria-label="Authentication Form"
+            className="md:col-span-6 flex flex-col justify-center px-2 sm:px-4 md:px-6 py-4 sm:py-6 space-y-6"
+          >
+            {/* Header: Title & Switch Link */}
+            <div className="space-y-2">
+              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
+                {activeTab === 'register' ? 'Create an account' : 'Welcome back'}
+              </h1>
+              <div className="text-xs sm:text-sm text-[#9a94ab] flex items-center gap-1.5">
+                <span>
+                  {activeTab === 'register' ? 'Already have an account?' : "Don't have an account?"}
+                </span>
+                <button
+                  type="button"
+                  id="auth-toggle-tab-link"
+                  onClick={() => {
+                    setActiveTab(activeTab === 'register' ? 'signin' : 'register');
+                    setErrorMessage(null);
+                    setSuccessMessage(null);
+                  }}
+                  className="text-[#9e86fc] hover:text-[#b4a0ff] font-medium underline underline-offset-4 transition-colors cursor-pointer"
+                >
+                  {activeTab === 'register' ? 'Log in' : 'Create an account'}
+                </button>
+              </div>
+            </div>
+
+            {/* Error and Success Notices */}
             {errorMessage && (
               <div
-                id="auth-error-alert"
-                className="p-3 rounded-xl bg-rose-950/50 border border-rose-900/80 text-rose-300 text-xs flex items-center gap-2 animate-in fade-in"
+                id="auth-error-banner"
+                className="p-3 rounded-xl bg-[#3d1e2b] border border-[#6b253b] text-[#ff9bb4] text-xs leading-relaxed animate-in fade-in"
               >
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-                <span>{errorMessage}</span>
+                {errorMessage}
               </div>
             )}
-
             {successMessage && (
               <div
-                id="auth-success-alert"
-                className="p-3 rounded-xl bg-emerald-950/50 border border-emerald-900/80 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in"
+                id="auth-success-banner"
+                className="p-3 rounded-xl bg-[#19362a] border border-[#2a614b] text-[#86efac] text-xs leading-relaxed animate-in fade-in"
               >
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-                <span>{successMessage}</span>
+                {successMessage}
               </div>
             )}
 
-            {/* SIGN IN FORM */}
-            {activeTab === 'signin' && (
-              <form id="form-signin" onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-cyan-400" />
-                    Email or Username
-                  </label>
-                  <div className="relative">
-                    <input
-                      id="input-login-identifier"
-                      type="text"
-                      value={loginIdentifier}
-                      onChange={(e) => setLoginIdentifier(e.target.value)}
-                      placeholder="admin@axpert.local or username"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-xs font-mono text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-                      autoFocus
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                      <Lock className="w-3.5 h-3.5 text-cyan-400" />
-                      Password
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="text-[11px] text-slate-400 hover:text-slate-200 flex items-center gap-1 cursor-pointer"
-                    >
-                      {showPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                      <span>{showPassword ? 'Hide' : 'Show'}</span>
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <input
-                      id="input-login-password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      placeholder="••••••••••••"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-xs font-mono text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <button
-                    id="btn-submit-signin"
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full py-3 px-4 rounded-xl theme-btn-primary text-xs font-bold font-mono uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg active:scale-[0.99] disabled:opacity-50"
-                  >
-                    {isSubmitting ? (
-                      <span className="flex items-center gap-2">
-                        <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        AUTHENTICATING IN SQLITE...
-                      </span>
-                    ) : (
-                      <>
-                        <span>SIGN IN TO WORKSTATION</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* REGISTER FORM */}
+            {/* =================================================================== */}
+            {/* REGISTER FORM                                                       */}
+            {/* =================================================================== */}
             {activeTab === 'register' && (
-              <form id="form-register" onSubmit={handleRegister} className="space-y-3.5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-cyan-400" />
-                      Full Name
-                    </label>
+              <form id="form-register" onSubmit={handleRegister} className="space-y-4">
+                {/* First Name & Last Name (Side-by-side as in uploaded image) */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
                     <input
-                      id="input-reg-fullname"
+                      id="input-reg-firstname"
                       type="text"
-                      value={regFullName}
-                      onChange={(e) => setRegFullName(e.target.value)}
-                      placeholder="e.g. Alex Morgan"
-                      className="w-full px-3 py-2 rounded-xl bg-slate-950/80 border border-slate-700/80 text-xs font-mono text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 transition-all"
+                      value={regFirstName}
+                      onChange={(e) => setRegFirstName(e.target.value)}
+                      placeholder="First name"
+                      className="w-full px-3.5 py-3 rounded-xl bg-[#312c3f] border border-[#443d57] text-xs sm:text-sm text-white placeholder-[#7e7792] focus:outline-none focus:border-[#7c5cfc] focus:ring-1 focus:ring-[#7c5cfc] transition-all"
+                      required
                     />
                   </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                      <KeyRound className="w-3.5 h-3.5 text-cyan-400" />
-                      Username *
-                    </label>
+                  <div>
                     <input
-                      id="input-reg-username"
+                      id="input-reg-lastname"
                       type="text"
-                      value={regUsername}
-                      onChange={(e) => setRegUsername(e.target.value)}
-                      placeholder="e.g. alex_operator"
-                      className="w-full px-3 py-2 rounded-xl bg-slate-950/80 border border-slate-700/80 text-xs font-mono text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 transition-all"
-                      required
+                      value={regLastName}
+                      onChange={(e) => setRegLastName(e.target.value)}
+                      placeholder="Last name"
+                      className="w-full px-3.5 py-3 rounded-xl bg-[#312c3f] border border-[#443d57] text-xs sm:text-sm text-white placeholder-[#7e7792] focus:outline-none focus:border-[#7c5cfc] focus:ring-1 focus:ring-[#7c5cfc] transition-all"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-cyan-400" />
-                    Email Address *
-                  </label>
+                {/* Email Address */}
+                <div>
                   <input
                     id="input-reg-email"
                     type="email"
                     value={regEmail}
                     onChange={(e) => setRegEmail(e.target.value)}
-                    placeholder="alex@company.local"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-xs font-mono text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 transition-all"
+                    placeholder="Email"
+                    className="w-full px-3.5 py-3 rounded-xl bg-[#312c3f] border border-[#443d57] text-xs sm:text-sm text-white placeholder-[#7e7792] focus:outline-none focus:border-[#7c5cfc] focus:ring-1 focus:ring-[#7c5cfc] transition-all"
                     required
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                      <Lock className="w-3.5 h-3.5 text-cyan-400" />
-                      Password *
-                    </label>
-                    <input
-                      id="input-reg-password"
-                      type="password"
-                      value={regPassword}
-                      onChange={(e) => setRegPassword(e.target.value)}
-                      placeholder="Min. 6 chars"
-                      className="w-full px-3 py-2 rounded-xl bg-slate-950/80 border border-slate-700/80 text-xs font-mono text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 transition-all"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                      <Lock className="w-3.5 h-3.5 text-cyan-400" />
-                      Confirm Password *
-                    </label>
-                    <input
-                      id="input-reg-confirm-password"
-                      type="password"
-                      value={regConfirmPassword}
-                      onChange={(e) => setRegConfirmPassword(e.target.value)}
-                      placeholder="Re-enter password"
-                      className="w-full px-3 py-2 rounded-xl bg-slate-950/80 border border-slate-700/80 text-xs font-mono text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 transition-all"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">
-                    Assigned Role
-                  </label>
-                  <select
-                    id="select-reg-role"
-                    value={regRole}
-                    onChange={(e) => setRegRole(e.target.value as 'operator' | 'analyst' | 'admin')}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950/80 border border-slate-700/80 text-xs font-mono text-slate-100 focus:outline-none focus:border-cyan-500 transition-all"
+                {/* Password with Eye Icon */}
+                <div className="relative">
+                  <input
+                    id="input-reg-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={regPassword}
+                    onChange={(e) => setRegPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="w-full px-3.5 py-3 pr-10 rounded-xl bg-[#312c3f] border border-[#443d57] text-xs sm:text-sm text-white placeholder-[#7e7792] focus:outline-none focus:border-[#7c5cfc] focus:ring-1 focus:ring-[#7c5cfc] transition-all"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7e7792] hover:text-white transition-colors cursor-pointer"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
-                    <option value="operator">Operator (Standard File Processing)</option>
-                    <option value="analyst">Analyst (Metadata & OCR Lead)</option>
-                    <option value="admin">Administrator (Full Diagnostic & Architecture)</option>
-                  </select>
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
 
+                {/* Terms Checkbox */}
+                <div className="flex items-center gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={agreeTerms}
+                    onClick={() => setAgreeTerms(!agreeTerms)}
+                    className={`w-4 h-4 rounded border flex items-center justify-center transition-colors cursor-pointer ${
+                      agreeTerms
+                        ? 'bg-[#7c5cfc] border-[#7c5cfc] text-white'
+                        : 'bg-[#312c3f] border-[#4f4765]'
+                    }`}
+                  >
+                    {agreeTerms && <Check className="w-3 h-3 stroke-[3]" />}
+                  </button>
+                  <label
+                    onClick={() => setAgreeTerms(!agreeTerms)}
+                    className="text-xs text-[#9a94ab] cursor-pointer select-none"
+                  >
+                    I agree to the{' '}
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowTermsModal(true);
+                      }}
+                      className="text-[#c4b5fd] hover:underline"
+                    >
+                      Terms &amp; Conditions
+                    </span>
+                  </label>
+                </div>
+
+                {/* Primary Button */}
                 <div className="pt-2">
                   <button
-                    id="btn-submit-register"
+                    id="btn-create-account"
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-3 px-4 rounded-xl theme-btn-primary text-xs font-bold font-mono uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg active:scale-[0.99] disabled:opacity-50"
+                    className="w-full py-3.5 px-4 rounded-xl bg-[#7354f5] hover:bg-[#8063f9] active:bg-[#6544e8] text-white font-medium text-sm tracking-wide transition-all duration-150 cursor-pointer shadow-lg shadow-[#7354f5]/25 active:scale-[0.99] disabled:opacity-50"
                   >
-                    {isSubmitting ? (
-                      <span className="flex items-center gap-2">
-                        <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        CREATING SQLITE USER RECORD...
-                      </span>
-                    ) : (
-                      <>
-                        <span>CREATE OFFLINE ACCOUNT</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
+                    {isSubmitting ? 'Creating account in SQLite...' : 'Create account'}
                   </button>
                 </div>
               </form>
             )}
 
-            {/* Quick Demo Helper & SQLite Actions */}
-            <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
-              <button
-                id="btn-fill-demo-credentials"
-                type="button"
-                onClick={fillDemoAdmin}
-                className="px-3 py-1.5 rounded-lg bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 border border-blue-800/60 font-mono text-[11px] flex items-center gap-1.5 transition-colors cursor-pointer"
-                title="Fill credentials for default offline administrator"
-              >
-                <Sparkles className="w-3 h-3 text-cyan-400" />
-                <span>Fill Demo Admin</span>
-              </button>
+            {/* =================================================================== */}
+            {/* SIGN IN FORM                                                        */}
+            {/* =================================================================== */}
+            {activeTab === 'signin' && (
+              <form id="form-signin" onSubmit={handleSignIn} className="space-y-4">
+                {/* Email or Username */}
+                <div>
+                  <input
+                    id="input-login-identifier"
+                    type="text"
+                    value={loginIdentifier}
+                    onChange={(e) => setLoginIdentifier(e.target.value)}
+                    placeholder="Email or Username"
+                    className="w-full px-3.5 py-3 rounded-xl bg-[#312c3f] border border-[#443d57] text-xs sm:text-sm text-white placeholder-[#7e7792] focus:outline-none focus:border-[#7c5cfc] focus:ring-1 focus:ring-[#7c5cfc] transition-all"
+                    required
+                    autoFocus
+                  />
+                </div>
 
+                {/* Password */}
+                <div className="relative">
+                  <input
+                    id="input-login-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="w-full px-3.5 py-3 pr-10 rounded-xl bg-[#312c3f] border border-[#443d57] text-xs sm:text-sm text-white placeholder-[#7e7792] focus:outline-none focus:border-[#7c5cfc] focus:ring-1 focus:ring-[#7c5cfc] transition-all"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7e7792] hover:text-white transition-colors cursor-pointer"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                {/* Remember Session Option */}
+                <div className="flex items-center justify-between text-xs text-[#9a94ab] pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <span className="w-4 h-4 rounded bg-[#7c5cfc] border border-[#7c5cfc] text-white flex items-center justify-center">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                    </span>
+                    <span>Remember local SQLite session</span>
+                  </label>
+                  <span className="text-[#847d95] text-[11px] font-mono">100% Offline</span>
+                </div>
+
+                {/* Primary Sign In Button */}
+                <div className="pt-2">
+                  <button
+                    id="btn-signin-submit"
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-3.5 px-4 rounded-xl bg-[#7354f5] hover:bg-[#8063f9] active:bg-[#6544e8] text-white font-medium text-sm tracking-wide transition-all duration-150 cursor-pointer shadow-lg shadow-[#7354f5]/25 active:scale-[0.99] disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Authenticating in SQLite...' : 'Sign in'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Divider "Or register with" / "Or sign in with" */}
+            <div className="relative flex items-center justify-center pt-1">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-[#3b354e]" />
+              </div>
+              <span className="relative px-3 bg-[#262232] text-[11px] text-[#7a748c]">
+                {activeTab === 'register' ? 'Or register with' : 'Or sign in with'}
+              </span>
+            </div>
+
+            {/* Secondary Action: Guest Preview Mode */}
+            <div className="space-y-2 pt-1">
               <button
-                id="btn-export-sqlite-file-landing"
+                id="btn-guest-explore-main"
                 type="button"
-                onClick={exportDatabaseFile}
-                className="px-3 py-1.5 rounded-lg bg-slate-800/70 hover:bg-slate-700/80 text-slate-300 border border-slate-700/70 font-mono text-[11px] flex items-center gap-1.5 transition-colors cursor-pointer"
-                title="Download axpert_auth.sqlite raw database file"
+                onClick={enterAsGuest}
+                className="w-full py-3 px-4 rounded-xl bg-[#312c3f] hover:bg-[#39334a] active:bg-[#282333] border border-[#443d57] text-xs font-medium text-white flex items-center justify-center gap-2.5 transition-all cursor-pointer shadow-sm group active:scale-[0.99]"
+                title="Explore workstation features in view-only preview mode"
               >
-                <Download className="w-3 h-3 text-emerald-400" />
-                <span>Download .sqlite File</span>
+                <Eye className="w-4 h-4 text-[#9b82ff] group-hover:text-white transition-colors" />
+                <span>Explore Features as Guest (View Only)</span>
+              </button>
+              <p className="text-[11px] text-center text-[#7e7690]">
+                Guests can explore all tools and inspectors. Uploads and conversions prompt account creation.
+              </p>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      {/* Terms & Conditions Modal */}
+      {showTermsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md rounded-2xl bg-[#262232] border border-[#3f3852] p-6 text-left space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#352f45] pb-3">
+              <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-[#7c5cfc]" />
+                Terms &amp; Offline Privacy Policy
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(false)}
+                className="text-[#9a94ab] hover:text-white text-xs px-2 py-1 rounded-lg bg-[#312c3f]"
+              >
+                ✕
               </button>
             </div>
-          </div>
 
-          {/* Bottom Security / Architecture Note */}
-          <div className="flex items-center justify-center gap-4 text-[11px] text-slate-500 font-mono">
-            <span className="flex items-center gap-1">
-              <HardDrive className="w-3 h-3 text-cyan-500" />
-              IndexedDB Persisted
-            </span>
-            <span>•</span>
-            <span className="flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3 text-emerald-500" />
-              Salted SHA-256 Hashes
-            </span>
-            <span>•</span>
-            <span>Zero Network Ingress</span>
+            <div className="space-y-3 text-xs text-[#a7a1b8] leading-relaxed max-h-60 overflow-y-auto pr-1">
+              <p>
+                <strong>1. 100% Offline Storage:</strong> All account data, credentials, and configuration
+                are stored exclusively on your device inside an embedded SQLite 3 database backed by browser
+                IndexedDB.
+              </p>
+              <p>
+                <strong>2. Zero Cloud Tracking:</strong> We do not transmit passwords, conversion files,
+                or metadata to external telemetry servers. Your media processing happens client-side in WebAssembly.
+              </p>
+              <p>
+                <strong>3. Cryptographic Salting:</strong> Passwords are cryptographically salted and hashed
+                using the Web Crypto API (SHA-256) before touching local tables.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setAgreeTerms(true);
+                setShowTermsModal(false);
+              }}
+              className="w-full py-2.5 rounded-xl bg-[#7354f5] hover:bg-[#8063f9] text-white text-xs font-semibold uppercase tracking-wider"
+            >
+              I Understand &amp; Agree
+            </button>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Theme Modal */}
+      {/* Theme Selector Modal */}
       <ThemeSelectorModal
         isOpen={isThemeModalOpen}
         onClose={() => setIsThemeModalOpen(false)}
@@ -512,3 +588,4 @@ export const AuthLandingWindow: React.FC = () => {
     </div>
   );
 };
+
