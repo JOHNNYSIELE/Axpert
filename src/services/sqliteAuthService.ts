@@ -7,13 +7,66 @@
  * genuine SQLite database file, auto-persisted to browser IndexedDB storage.
  */
 
-import initSqlJs, { Database, SqlJsStatic } from 'sql.js';
+import initSqlJsWasm, { Database, SqlJsStatic } from 'sql.js';
+// @ts-ignore sql-asm is packaged in sql.js/dist
+import initSqlJsAsm from 'sql.js/dist/sql-asm.js';
+import sqlWasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
 import { AuthUser, AuthAuditLog, SqliteTableInfo } from '../types';
 import { saveSqliteBuffer, loadSqliteBuffer, deleteSqliteDatabase } from './sqliteStorage';
 
 let SQL: SqlJsStatic | null = null;
 let db: Database | null = null;
 let initPromise: Promise<void> | null = null;
+
+async function loadSqlJsEngine(): Promise<SqlJsStatic> {
+  // Attempt 1: Fetch WASM binary and verify magic bytes (\0asm)
+  try {
+    const res = await fetch(sqlWasmUrl);
+    if (res.ok) {
+      const buffer = await res.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      // Validate WebAssembly magic header: 0x00 0x61 0x73 0x6d (\0asm)
+      if (
+        bytes.length > 4 &&
+        bytes[0] === 0x00 &&
+        bytes[1] === 0x61 &&
+        bytes[2] === 0x73 &&
+        bytes[3] === 0x6d
+      ) {
+        console.log('[SQLite Engine] Valid WebAssembly binary loaded, initializing WASM SQLite...');
+        const sqlInstance = await initSqlJsWasm({
+          wasmBinary: buffer,
+        });
+        if (sqlInstance && sqlInstance.Database) {
+          return sqlInstance;
+        }
+      } else {
+        console.warn(
+          '[SQLite Engine] Non-WASM response received for wasm URL (magic word mismatch). Falling back to pure offline JS/asm engine.'
+        );
+      }
+    }
+  } catch (wasmErr) {
+    console.warn('[SQLite Engine] WASM instantiation failed, falling back to asm.js engine:', wasmErr);
+  }
+
+  // Attempt 2: Pure JavaScript asm.js SQLite engine (zero network requests, works in all iframes)
+  console.log('[SQLite Engine] Initializing resilient offline JS/asm SQLite engine...');
+  const asmInitializer =
+    typeof initSqlJsAsm === 'function'
+      ? initSqlJsAsm
+      : (initSqlJsAsm as { default?: () => Promise<SqlJsStatic> })?.default;
+
+  if (typeof asmInitializer === 'function') {
+    const asmInstance = await asmInitializer();
+    if (asmInstance && asmInstance.Database) {
+      return asmInstance;
+    }
+  }
+
+  // Attempt 3: Direct initSqlJsWasm with fallback
+  return await initSqlJsWasm();
+}
 
 // Cryptographic helpers
 function generateRandomHex(bytesCount = 16): string {
@@ -49,9 +102,7 @@ class SqliteAuthService {
     initPromise = (async () => {
       try {
         if (!SQL) {
-          SQL = await initSqlJs({
-            locateFile: (file: string) => `/${file}`
-          });
+          SQL = await loadSqlJsEngine();
         }
 
         // Attempt to load existing SQLite database from local IndexedDB

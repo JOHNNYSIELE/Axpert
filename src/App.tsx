@@ -82,7 +82,7 @@ function MainDesktopWindow() {
 }
 
 function AppContent() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, initError, retryInit } = useAuth();
 
   if (isLoading) {
     return (
@@ -95,8 +95,31 @@ function AppContent() {
             Initializing AXpert Offline SQLite Workstation...
           </div>
           <div className="text-xs text-slate-500">
-            Mounting local WebAssembly database & validating session...
+            Mounting local SQLite database & validating offline session...
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (initError && !user) {
+    return (
+      <div className="w-screen h-screen bg-[#0b0f17] flex flex-col items-center justify-center text-slate-100 font-mono p-4">
+        <div className="max-w-md w-full p-6 rounded-2xl bg-slate-900 border border-rose-900/60 text-center space-y-4 shadow-2xl">
+          <div className="w-12 h-12 mx-auto rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 font-bold text-lg">
+            !
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-base font-semibold text-slate-100">Database Initialization Alert</h2>
+            <p className="text-xs text-rose-300 font-mono break-words">{initError}</p>
+          </div>
+          <button
+            type="button"
+            onClick={retryInit}
+            className="w-full py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs tracking-wider uppercase transition-colors cursor-pointer"
+          >
+            Retry Database Mount
+          </button>
         </div>
       </div>
     );

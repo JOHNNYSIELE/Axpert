@@ -12,6 +12,8 @@ interface AuthContextType {
   sessionToken: string | null;
   isLoading: boolean;
   isReady: boolean;
+  initError: string | null;
+  retryInit: () => void;
   login: (identifier: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (
     username: string,
@@ -36,6 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isReady, setIsReady] = useState<boolean>(false);
+  const [initError, setInitError] = useState<string | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuthAuditLog[]>([]);
   const [tableInfo, setTableInfo] = useState<SqliteTableInfo[]>([]);
 
@@ -50,12 +53,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  const [initTrigger, setInitTrigger] = useState(0);
+  const retryInit = useCallback(() => {
+    setIsLoading(true);
+    setInitError(null);
+    setInitTrigger((n) => n + 1);
+  }, []);
+
   // Initialize SQLite Database and validate existing session
   useEffect(() => {
     let isMounted = true;
 
     async function initAuth() {
       try {
+        setInitError(null);
         await sqliteAuth.initialize();
         if (!isMounted) return;
 
@@ -75,6 +86,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (err) {
         console.error('[AuthContext] Initialization failed:', err);
+        if (isMounted) {
+          setInitError(err instanceof Error ? err.message : 'Database initialization failed');
+        }
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -87,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       isMounted = false;
     };
-  }, [refreshData]);
+  }, [refreshData, initTrigger]);
 
   const login = async (identifier: string, password: string) => {
     try {
@@ -168,6 +182,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sessionToken,
         isLoading,
         isReady,
+        initError,
+        retryInit,
         login,
         register,
         logout,
