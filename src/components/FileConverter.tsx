@@ -24,6 +24,7 @@ import {
 } from '../types';
 import { ipc } from '../lib/ipcBridge';
 import { formatFileSize, getFileExtension, getMimeType } from '../services/fileService';
+import { engineTelemetry } from '../services/engineTelemetry';
 import { Zap, Music } from 'lucide-react';
 
 const AVAILABLE_FORMATS = [
@@ -188,7 +189,7 @@ export const FileConverter: React.FC<FileConverterProps> = ({
     }
   };
 
-  // Safe file removal or cancellation
+  // Safe file removal, deletion of worked-on file, or cancellation
   const handleRemoveItem = async (item: FileQueueItem) => {
     if (item.status === 'PROCESSING') {
       if (activeJobId) {
@@ -199,13 +200,30 @@ export const FileConverter: React.FC<FileConverterProps> = ({
       );
       showNotification(`Cancelled processing for ${item.name}`, 'info');
     } else {
+      if (item.downloadUrl) {
+        engineTelemetry.revokeBlob(item.downloadUrl);
+      }
       setQueue((prev) => prev.filter((q) => q.id !== item.id));
+      if (item.status === 'COMPLETED') {
+        showNotification(`Deleted worked-on file "${item.name}" and removed output artifact.`, 'info');
+      } else {
+        showNotification(`Removed "${item.name}" from queue.`, 'info');
+      }
     }
   };
 
-  // Clear completed or all items
+  // Delete all completed / finished items
   const handleClearCompleted = () => {
+    const completedItems = queue.filter(
+      (item) => item.status === 'COMPLETED' || item.status === 'FAILED' || item.status === 'CANCELLED'
+    );
+    completedItems.forEach((item) => {
+      if (item.downloadUrl) {
+        engineTelemetry.revokeBlob(item.downloadUrl);
+      }
+    });
     setQueue((prev) => prev.filter((item) => item.status === 'QUEUED' || item.status === 'PROCESSING'));
+    showNotification(`Deleted ${completedItems.length} finished file(s) from session.`, 'info');
   };
 
   // Execute Converter
@@ -530,11 +548,12 @@ export const FileConverter: React.FC<FileConverterProps> = ({
           {queue.some((i) => i.status === 'COMPLETED' || i.status === 'FAILED' || i.status === 'CANCELLED') && (
             <button
               type="button"
+              id="btn-clear-completed"
               onClick={handleClearCompleted}
-              className="text-xs text-slate-400 hover:text-slate-200 hover:underline flex items-center gap-1"
+              className="text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 px-2.5 py-1 rounded-lg border border-rose-900/60 flex items-center gap-1.5 transition-colors font-mono cursor-pointer"
             >
-              <RotateCcw className="w-3 h-3" />
-              Clear finished
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete Worked Files ({queue.filter((i) => i.status === 'COMPLETED').length})</span>
             </button>
           )}
         </div>
@@ -608,27 +627,43 @@ export const FileConverter: React.FC<FileConverterProps> = ({
                       </button>
                     )}
 
-                    {item.status === 'COMPLETED' && item.downloadUrl && (
-                      <a
-                        href={item.downloadUrl}
-                        download={`${item.name.replace(/\.[^/.]+$/, '')}_converted.${outputFormat}`}
-                        className="p-1.5 rounded-lg bg-emerald-950/60 border border-emerald-800 text-emerald-300 hover:bg-emerald-900/60 transition-colors"
-                        title="Download converted file"
-                        aria-label="Download converted file"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                      </a>
+                    {item.status === 'COMPLETED' && (
+                      <>
+                        {item.downloadUrl && (
+                          <a
+                            href={item.downloadUrl}
+                            download={`${item.name.replace(/\.[^/.]+$/, '')}_converted.${outputFormat}`}
+                            className="p-1.5 rounded-lg bg-emerald-950/60 border border-emerald-800 text-emerald-300 hover:bg-emerald-900/60 transition-colors"
+                            title="Download converted file"
+                            aria-label="Download converted file"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          id={`btn-delete-worked-${item.id}`}
+                          onClick={() => handleRemoveItem(item)}
+                          className="px-2 py-1 rounded-lg bg-rose-950/30 hover:bg-rose-900/50 border border-rose-900/60 text-rose-300 hover:text-rose-200 text-[11px] font-mono flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Delete worked-on file and purge from session"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Delete</span>
+                        </button>
+                      </>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveItem(item)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
-                      title={item.status === 'PROCESSING' ? 'Cancel conversion' : 'Remove from queue'}
-                      aria-label="Remove item"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {item.status !== 'COMPLETED' && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(item)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors cursor-pointer"
+                        title={item.status === 'PROCESSING' ? 'Cancel conversion' : 'Remove from queue'}
+                        aria-label="Remove item"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
 

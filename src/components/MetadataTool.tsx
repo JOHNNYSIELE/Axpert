@@ -167,6 +167,17 @@ export const MetadataTool: React.FC<MetadataToolProps> = ({ onFileLoadedChange }
     if (onFileLoadedChange) onFileLoadedChange(false);
   };
 
+  const handleDeleteWorkedFile = () => {
+    const filename = selectedFile?.name || 'file';
+    setSelectedFile(null);
+    setInspection(null);
+    setStripResult(null);
+    setErrorMessage(null);
+    if (onFileLoadedChange) onFileLoadedChange(false);
+    setStatusMessage(`Deleted worked-on file "${filename}" and discarded all metadata analysis.`);
+    setTimeout(() => setStatusMessage(null), 5000);
+  };
+
   return (
     <div id="metadata-tool-view" className="flex-1 overflow-y-auto p-6 space-y-6">
       {/* Header */}
@@ -269,14 +280,26 @@ export const MetadataTool: React.FC<MetadataToolProps> = ({ onFileLoadedChange }
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleReset}
-              className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/60 transition-colors self-start sm:self-auto"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Choose Another File
-            </button>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <button
+                type="button"
+                id="btn-discard-staged-metadata"
+                onClick={handleDeleteWorkedFile}
+                className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-900/60 bg-rose-950/30 transition-colors cursor-pointer"
+                title="Discard staged file"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Discard
+              </button>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/60 transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Change File
+              </button>
+            </div>
           </div>
 
           <div className="pt-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-800/80">
@@ -461,13 +484,24 @@ export const MetadataTool: React.FC<MetadataToolProps> = ({ onFileLoadedChange }
             </div>
           </div>
 
-          {/* Action: SAVE CLEAN COPY */}
-          <div className="flex justify-end pt-2">
+          {/* Action: SAVE CLEAN COPY & DELETE FILE */}
+          <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
+            <button
+              id="btn-delete-metadata-file"
+              type="button"
+              onClick={handleDeleteWorkedFile}
+              className="px-4 py-3 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900/60 text-rose-300 hover:text-rose-200 text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer"
+              title="Delete worked-on file and clear inspection cache"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>DELETE FILE</span>
+            </button>
+
             <button
               id="btn-save-clean-copy"
               type="button"
               onClick={handleSaveCleanCopy}
-              className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all shadow-lg shadow-emerald-900/30"
+              className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all shadow-lg shadow-emerald-900/30 cursor-pointer"
             >
               <Download className="w-4 h-4" />
               <span>SAVE CLEAN COPY</span>

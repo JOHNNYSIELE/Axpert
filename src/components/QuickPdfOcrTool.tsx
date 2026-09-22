@@ -19,7 +19,8 @@ import {
   Layers,
   FileCheck2,
   FileCode,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Trash2
 } from 'lucide-react';
 import { PdfOcrResult } from '../types';
 import { processPdfOcr } from '../services/pdfOcrService';
@@ -40,6 +41,7 @@ export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = f
   const [copied, setCopied] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [ocrTargetFormat, setOcrTargetFormat] = useState<'both' | 'txt' | 'docx'>('both');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -155,6 +157,13 @@ export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = f
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleDeleteOcrFile = () => {
+    const filename = ocrResult?.fileName || selectedFile?.name || 'Document';
+    handleReset();
+    setStatusMessage(`Deleted worked-on file "${filename}" and cleared extracted results.`);
+    setTimeout(() => setStatusMessage(null), 5000);
+  };
+
   const filteredText = ocrResult?.extractedText || '';
 
   return (
@@ -201,6 +210,19 @@ export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = f
           </button>
         )}
       </div>
+
+      {statusMessage && (
+        <div className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-800 text-xs text-emerald-300 font-mono flex items-center justify-between">
+          <span>✓ {statusMessage}</span>
+          <button
+            type="button"
+            onClick={() => setStatusMessage(null)}
+            className="text-emerald-400 hover:text-emerald-200 ml-2"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {errorMessage && (
         <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-800 text-xs text-rose-300">
@@ -267,14 +289,26 @@ export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = f
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleReset}
-              className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/60 transition-colors self-start sm:self-auto"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Choose Another File
-            </button>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <button
+                type="button"
+                id="btn-discard-staged-pdf"
+                onClick={handleDeleteOcrFile}
+                className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-900/60 bg-rose-950/30 transition-colors cursor-pointer"
+                title="Discard staged PDF"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Discard
+              </button>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/60 transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Change File
+              </button>
+            </div>
           </div>
 
           {/* OCR Options */}
@@ -433,6 +467,17 @@ export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = f
               >
                 {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                 <span>{copied ? 'Copied!' : 'Copy'}</span>
+              </button>
+
+              <button
+                id="btn-delete-ocr-file"
+                type="button"
+                onClick={handleDeleteOcrFile}
+                className="px-3.5 py-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-200 text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 border border-rose-900/60 transition-colors cursor-pointer"
+                title="Delete worked-on PDF and clear extracted results"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>DELETE FILE</span>
               </button>
             </div>
           </div>

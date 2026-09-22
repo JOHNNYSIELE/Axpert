@@ -79,6 +79,27 @@ class EngineTelemetryService {
     this.notify();
   }
 
+  revokeBlob(url?: string): boolean {
+    if (!url) return false;
+    const blob = this.tempBlobs.get(url);
+    if (blob) {
+      this.tempBlobs.delete(url);
+      try {
+        URL.revokeObjectURL(url);
+      } catch {
+        // ignore
+      }
+      this.notify();
+      return true;
+    }
+    try {
+      URL.revokeObjectURL(url);
+    } catch {
+      // ignore
+    }
+    return false;
+  }
+
   purgeCache(): { freedBytes: number; count: number } {
     let freedBytes = 0;
     const count = this.tempBlobs.size;

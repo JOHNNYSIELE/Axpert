@@ -19,11 +19,13 @@ import {
   AlertTriangle,
   Layers,
   Sparkles,
-  Radio
+  Radio,
+  Trash2
 } from 'lucide-react';
 import { AudioExtractionOptions, AudioExtractionResult } from '../types';
 import { extractAudioFromVideo } from '../services/audioExtractor';
 import { formatFileSize } from '../services/fileService';
+import { engineTelemetry } from '../services/engineTelemetry';
 
 export const AudioExtractor: React.FC = () => {
   const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
@@ -34,6 +36,7 @@ export const AudioExtractor: React.FC = () => {
   const [result, setResult] = useState<AudioExtractionResult | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
 
   // Audio options
@@ -160,6 +163,33 @@ export const AudioExtractor: React.FC = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleDeleteExtractedAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    setIsPlaying(false);
+    if (result) {
+      engineTelemetry.revokeBlob(result.audioUrl);
+      const name = result.outputFileName;
+      setResult(null);
+      setStatusMessage(`Deleted worked-on audio file "${name}" and reclaimed buffer memory.`);
+      setTimeout(() => setStatusMessage(null), 5000);
+    }
+  };
+
+  const handleDeleteAllAudioSession = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    if (result) {
+      engineTelemetry.revokeBlob(result.audioUrl);
+    }
+    const filename = selectedVideo?.name || 'video file';
+    handleReset();
+    setStatusMessage(`Deleted session and all associated files for "${filename}".`);
+    setTimeout(() => setStatusMessage(null), 5000);
+  };
+
   return (
     <div id="audio-extractor-view" className="flex-1 overflow-y-auto p-6 space-y-6">
       {/* Hidden file input */}
@@ -201,6 +231,19 @@ export const AudioExtractor: React.FC = () => {
           </button>
         )}
       </div>
+
+      {statusMessage && (
+        <div className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-800 text-xs text-emerald-300 font-mono flex items-center justify-between">
+          <span>✓ {statusMessage}</span>
+          <button
+            type="button"
+            onClick={() => setStatusMessage(null)}
+            className="text-emerald-400 hover:text-emerald-200 ml-2"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {errorMessage && (
         <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-800 text-xs text-rose-300 flex items-center gap-2">
@@ -263,6 +306,24 @@ export const AudioExtractor: React.FC = () => {
               <Volume2 className="w-3.5 h-3.5" />
               Soundtrack Demux Ready
             </span>
+            <button
+              type="button"
+              id="btn-discard-staged-video"
+              onClick={handleDeleteAllAudioSession}
+              className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-900/60 bg-rose-950/30 transition-colors cursor-pointer"
+              title="Discard staged video"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Discard
+            </button>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/60 transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Change
+            </button>
           </div>
         </div>
       )}
@@ -441,15 +502,28 @@ export const AudioExtractor: React.FC = () => {
               </div>
             </div>
 
-            <button
-              id="btn-download-audio"
-              type="button"
-              onClick={handleDownload}
-              className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-2 transition-all shadow-lg shadow-emerald-900/30 shrink-0"
-            >
-              <Download className="w-4 h-4" />
-              <span>DOWNLOAD AUDIO ({result.format.toUpperCase()})</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                id="btn-download-audio"
+                type="button"
+                onClick={handleDownload}
+                className="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-2 transition-all shadow-lg shadow-emerald-900/30 cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>DOWNLOAD AUDIO ({result.format.toUpperCase()})</span>
+              </button>
+
+              <button
+                id="btn-delete-extracted-audio"
+                type="button"
+                onClick={handleDeleteExtractedAudio}
+                className="px-4 py-3 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-900/60 text-rose-300 hover:text-rose-200 text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer"
+                title="Delete extracted audio file and release memory"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>DELETE AUDIO</span>
+              </button>
+            </div>
           </div>
 
           {/* Hidden HTML5 Audio Element */}
