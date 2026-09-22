@@ -441,7 +441,7 @@ export const AudioExtractor: React.FC = () => {
               type="button"
               disabled={isExtracting}
               onClick={handleExtractAudio}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all shadow-lg shadow-cyan-950/40 active:scale-[0.99] cursor-pointer"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-xl theme-btn-primary text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all shadow-lg active:scale-[0.99] cursor-pointer"
             >
               <Music className="w-4 h-4" />
               <span>{isExtracting ? 'EXTRACTING AUDIO STREAM...' : 'EXTRACT AUDIO FROM VIDEO'}</span>

@@ -360,7 +360,7 @@ export const QuickPdfOcrTool: React.FC<QuickPdfOcrToolProps> = ({ isEmbedded = f
               id="btn-start-pdf-ocr"
               type="button"
               onClick={executeOcrOnFile}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all shadow-lg shadow-blue-950/40 active:scale-[0.99] cursor-pointer"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-xl theme-btn-primary font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all shadow-lg active:scale-[0.99] cursor-pointer"
             >
               <Zap className="w-4 h-4 fill-current" />
               <span>START OCR EXTRACTION</span>

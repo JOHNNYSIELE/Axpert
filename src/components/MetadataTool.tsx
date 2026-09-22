@@ -313,7 +313,7 @@ export const MetadataTool: React.FC<MetadataToolProps> = ({ onFileLoadedChange }
               type="button"
               disabled={isInspecting}
               onClick={handleExecuteInspection}
-              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg shadow-cyan-950/40 active:scale-[0.99] cursor-pointer"
+              className="w-full sm:w-auto px-8 py-3 rounded-xl theme-btn-primary font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.99] cursor-pointer"
             >
               {isInspecting ? (
                 <>

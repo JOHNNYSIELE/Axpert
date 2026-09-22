@@ -125,7 +125,7 @@ export const EngineInspector: React.FC = () => {
             type="button"
             disabled={isRunningBenchmarks}
             onClick={handleRunDiagnostics}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold font-mono flex items-center gap-2 transition-all shadow-md shadow-blue-900/30 active:scale-95"
+            className="px-4 py-2 rounded-xl theme-btn-primary text-xs font-semibold font-mono flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer"
           >
             <Play className={`w-3.5 h-3.5 ${isRunningBenchmarks ? 'animate-spin' : ''}`} />
             <span>{isRunningBenchmarks ? 'RUNNING BENCHMARK...' : 'RUN SUBSYSTEM BENCHMARK'}</span>

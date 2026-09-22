@@ -876,7 +876,7 @@ export const FileConverter: React.FC<FileConverterProps> = ({
           className={`px-8 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2.5 transition-all shadow-lg ${
             isProcessingAll || queue.filter((i) => i.status === 'QUEUED' || i.status === 'FAILED').length === 0
               ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
-              : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-cyan-500/25 hover:shadow-cyan-400/40 active:scale-[0.99]'
+              : 'theme-btn-primary cursor-pointer active:scale-[0.99]'
           }`}
         >
           {isProcessingAll ? (

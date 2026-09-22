@@ -1,1 +1,295 @@
 @import "tailwindcss";
+
+/* -------------------------------------------------------------
+   AXpert Desktop Suite - Multi-Theme & Light/Dark Engine
+   Rooted in the reference UI/UX stylesheet:
+   - Electric Cyan Reference (#0b0f17 / #131a26 / #06b6d4 / #2563eb)
+   - Calibrated Enterprise Light & High-Contrast Dark Modes
+   ------------------------------------------------------------- */
+
+:root {
+  /* Default: Dark Mode with Reference Electric Cyan */
+  --bg-primary: #0b0f17;
+  --bg-surface: #131a26;
+  --bg-elevated: #1a2332;
+  --border-subtle: #232f42;
+  --border-focus: #06b6d4;
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-subtle: #64748b;
+
+  --theme-accent: #06b6d4;
+  --theme-accent-hover: #22d3ee;
+  --theme-accent-subtle: rgba(6, 182, 212, 0.12);
+  --theme-accent-border: rgba(6, 182, 212, 0.35);
+  --theme-accent-contrast: #0b0f17;
+  --theme-secondary: #2563eb;
+  --theme-brand-from: #2563eb;
+  --theme-brand-to: #06b6d4;
+
+  --color-success: #10b981;
+  --color-danger: #f43f5e;
+  --color-warning: #f59e0b;
+}
+
+/* --- Color Preset Overrides --- */
+
+/* Preset 1: Electric Cyan (Reference File Default) */
+[data-theme-preset="cyan"] {
+  --theme-accent: #06b6d4;
+  --theme-accent-hover: #22d3ee;
+  --theme-accent-subtle: rgba(6, 182, 212, 0.15);
+  --theme-accent-border: rgba(6, 182, 212, 0.4);
+  --theme-accent-contrast: #070a0f;
+  --theme-secondary: #2563eb;
+  --theme-brand-from: #2563eb;
+  --theme-brand-to: #06b6d4;
+}
+
+/* Preset 2: Cobalt Studio */
+[data-theme-preset="cobalt"] {
+  --theme-accent: #3b82f6;
+  --theme-accent-hover: #60a5fa;
+  --theme-accent-subtle: rgba(59, 130, 246, 0.15);
+  --theme-accent-border: rgba(59, 130, 246, 0.4);
+  --theme-accent-contrast: #ffffff;
+  --theme-secondary: #6366f1;
+  --theme-brand-from: #1d4ed8;
+  --theme-brand-to: #3b82f6;
+}
+
+/* Preset 3: Matrix Emerald */
+[data-theme-preset="emerald"] {
+  --theme-accent: #10b981;
+  --theme-accent-hover: #34d399;
+  --theme-accent-subtle: rgba(16, 185, 129, 0.15);
+  --theme-accent-border: rgba(16, 185, 129, 0.4);
+  --theme-accent-contrast: #042f2e;
+  --theme-secondary: #06b6d4;
+  --theme-brand-from: #047857;
+  --theme-brand-to: #10b981;
+}
+
+/* Preset 4: Obsidian Amber */
+[data-theme-preset="amber"] {
+  --theme-accent: #f59e0b;
+  --theme-accent-hover: #fbbf24;
+  --theme-accent-subtle: rgba(245, 158, 11, 0.15);
+  --theme-accent-border: rgba(245, 158, 11, 0.4);
+  --theme-accent-contrast: #451a03;
+  --theme-secondary: #f97316;
+  --theme-brand-from: #b45309;
+  --theme-brand-to: #f59e0b;
+}
+
+/* Preset 5: Neon Violet */
+[data-theme-preset="violet"] {
+  --theme-accent: #a855f7;
+  --theme-accent-hover: #c084fc;
+  --theme-accent-subtle: rgba(168, 85, 247, 0.15);
+  --theme-accent-border: rgba(168, 85, 247, 0.4);
+  --theme-accent-contrast: #ffffff;
+  --theme-secondary: #06b6d4;
+  --theme-brand-from: #7e22ce;
+  --theme-brand-to: #a855f7;
+}
+
+/* -------------------------------------------------------------
+   LIGHT MODE OVERRIDES ([data-theme-mode="light"])
+   Crisp, high-contrast, modern enterprise desktop workstation
+   ------------------------------------------------------------- */
+[data-theme-mode="light"] {
+  color-scheme: light;
+  --bg-primary: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f1f5f9;
+  --border-subtle: #e2e8f0;
+  --border-focus: var(--theme-accent);
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-subtle: #64748b;
+}
+
+/* Light mode adjustments for presets to maintain optimal WCAG contrast */
+[data-theme-mode="light"][data-theme-preset="cyan"] {
+  --theme-accent: #0891b2;
+  --theme-accent-hover: #0e7490;
+  --theme-accent-subtle: rgba(8, 145, 178, 0.1);
+  --theme-accent-border: rgba(8, 145, 178, 0.35);
+  --theme-accent-contrast: #ffffff;
+}
+
+[data-theme-mode="light"][data-theme-preset="cobalt"] {
+  --theme-accent: #2563eb;
+  --theme-accent-hover: #1d4ed8;
+  --theme-accent-subtle: rgba(37, 99, 235, 0.1);
+  --theme-accent-border: rgba(37, 99, 235, 0.35);
+  --theme-accent-contrast: #ffffff;
+}
+
+[data-theme-mode="light"][data-theme-preset="emerald"] {
+  --theme-accent: #059669;
+  --theme-accent-hover: #047857;
+  --theme-accent-subtle: rgba(5, 150, 105, 0.1);
+  --theme-accent-border: rgba(5, 150, 105, 0.35);
+  --theme-accent-contrast: #ffffff;
+}
+
+[data-theme-mode="light"][data-theme-preset="amber"] {
+  --theme-accent: #d97706;
+  --theme-accent-hover: #b45309;
+  --theme-accent-subtle: rgba(217, 119, 6, 0.1);
+  --theme-accent-border: rgba(217, 119, 6, 0.35);
+  --theme-accent-contrast: #ffffff;
+}
+
+[data-theme-mode="light"][data-theme-preset="violet"] {
+  --theme-accent: #7c3aed;
+  --theme-accent-hover: #6d28d9;
+  --theme-accent-subtle: rgba(124, 58, 237, 0.1);
+  --theme-accent-border: rgba(124, 58, 237, 0.35);
+  --theme-accent-contrast: #ffffff;
+}
+
+/* -------------------------------------------------------------
+   LIGHT MODE SELECTOR RE-MAPPING
+   Automatically transforms dark Tailwind palette classes to light mode
+   ------------------------------------------------------------- */
+[data-theme-mode="light"] .bg-slate-950,
+[data-theme-mode="light"] .bg-\[\#0b0f17\],
+[data-theme-mode="light"] .bg-\[\#070a0f\] {
+  background-color: #f8fafc !important;
+}
+
+[data-theme-mode="light"] #desktop-titlebar {
+  background-color: #ffffff !important;
+  border-bottom-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+[data-theme-mode="light"] #desktop-sidebar {
+  background-color: #f1f5f9 !important;
+  border-right-color: #e2e8f0 !important;
+}
+
+[data-theme-mode="light"] .bg-slate-900 {
+  background-color: #ffffff !important;
+}
+
+[data-theme-mode="light"] .bg-slate-900\/80,
+[data-theme-mode="light"] .bg-slate-900\/60,
+[data-theme-mode="light"] .bg-slate-900\/40,
+[data-theme-mode="light"] .bg-slate-900\/30 {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+}
+
+[data-theme-mode="light"] .bg-slate-800,
+[data-theme-mode="light"] .bg-slate-800\/60,
+[data-theme-mode="light"] .bg-slate-800\/50,
+[data-theme-mode="light"] .bg-slate-800\/40 {
+  background-color: #f1f5f9 !important;
+}
+
+[data-theme-mode="light"] .border-slate-800,
+[data-theme-mode="light"] .border-slate-800\/80,
+[data-theme-mode="light"] .border-slate-700,
+[data-theme-mode="light"] .border-slate-700\/80,
+[data-theme-mode="light"] .border-slate-700\/60 {
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme-mode="light"] .text-slate-100 {
+  color: #0f172a !important;
+}
+
+[data-theme-mode="light"] .text-slate-200 {
+  color: #1e293b !important;
+}
+
+[data-theme-mode="light"] .text-slate-300 {
+  color: #334155 !important;
+}
+
+[data-theme-mode="light"] .text-slate-400 {
+  color: #64748b !important;
+}
+
+[data-theme-mode="light"] .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+/* Light mode hover states */
+[data-theme-mode="light"] .hover\:bg-slate-800:hover,
+[data-theme-mode="light"] .hover\:bg-slate-800\/60:hover {
+  background-color: #e2e8f0 !important;
+}
+
+/* Inputs, Selects & Textareas in light mode */
+[data-theme-mode="light"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme-mode="light"] select,
+[data-theme-mode="light"] textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Dropzone styling in light mode */
+[data-theme-mode="light"] .border-dashed {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+[data-theme-mode="light"] .border-dashed:hover {
+  border-color: var(--theme-accent) !important;
+  background-color: var(--theme-accent-subtle) !important;
+}
+
+/* Active Navigation and Dynamic Brand Elements */
+.theme-brand-gradient {
+  background: linear-gradient(135deg, var(--theme-brand-from), var(--theme-brand-to)) !important;
+}
+
+.theme-accent-bg {
+  background-color: var(--theme-accent) !important;
+  color: var(--theme-accent-contrast) !important;
+}
+
+.theme-accent-text {
+  color: var(--theme-accent) !important;
+}
+
+.theme-accent-border {
+  border-color: var(--theme-accent) !important;
+}
+
+/* Primary Action Buttons */
+.theme-btn-primary {
+  background-color: var(--theme-accent) !important;
+  color: var(--theme-accent-contrast) !important;
+  box-shadow: 0 4px 14px var(--theme-accent-subtle) !important;
+  transition: all 0.2s ease;
+}
+
+.theme-btn-primary:hover:not(:disabled) {
+  background-color: var(--theme-accent-hover) !important;
+  box-shadow: 0 6px 20px var(--theme-accent-border) !important;
+}
+
+/* Light mode table headers */
+[data-theme-mode="light"] th {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+}
+
+[data-theme-mode="light"] td {
+  border-bottom-color: #e2e8f0 !important;
+}
+
+/* Light mode cards and containers */
+[data-theme-mode="light"] .shadow-lg {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Smooth transition when switching themes */
+body, #desktop-titlebar, #desktop-sidebar, main, .app-container {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.2s ease;
+}
